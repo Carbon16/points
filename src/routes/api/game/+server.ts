@@ -57,8 +57,11 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ success: false, error: 'Game already in progress' }, { status: 400 });
 		}
 
-		const game = createGame('player1', 'Player 1', 'player2', 'Player 2');
-		game.phase = 'betting';
+		/* Extract playForPoints from request, default true */
+		const { playForPoints } = await request.json().catch(() => ({ playForPoints: true }));
+
+		const game = createGame('player1', 'Player 1', 'player2', 'Player 2', playForPoints);
+		// Phase is 'waiting' by default now
 		saveGame(game);
 
 		await notifyOtherUser(user.userId, {
@@ -77,14 +80,16 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const { over, winner, loser } = isGameOver(game);
 		if (over) {
-			// Record point on blockchain
-			addBlock({
-				type: 'poker_win',
-				winner: winner!,
-				loser: loser!,
-				approvedBy: [winner!, loser!],
-				timestamp: Date.now()
-			});
+			// Record point on blockchain IF playing for points
+			if (game.playForPoints !== false) {
+				addBlock({
+					type: 'poker_win',
+					winner: winner!,
+					loser: loser!,
+					approvedBy: [winner!, loser!],
+					timestamp: Date.now()
+				});
+			}
 			clearGame();
 			return json({
 				success: true,
@@ -98,7 +103,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	// Player action
-	if (['check', 'bet', 'call', 'raise', 'fold', 'all-in'].includes(action)) {
+	if (['check', 'bet', 'call', 'raise', 'fold', 'all-in', 'start'].includes(action)) {
 		const game = loadGame();
 		if (!game) return json({ success: false, error: 'No game' }, { status: 400 });
 

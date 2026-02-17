@@ -6,7 +6,7 @@ export interface User {
 }
 
 // ─── Blockchain ───────────────────────────────────────────────────────
-export type BlockType = 'genesis' | 'poker_win' | 'manual_point';
+export type BlockType = 'genesis' | 'poker_win' | 'manual_point' | 'spend';
 
 export interface BlockData {
 	type: BlockType;
@@ -16,6 +16,7 @@ export interface BlockData {
 	approvedBy: string[];
 	timestamp: number;
 	signatures?: Record<string, string>; // userId -> signature
+	amount?: number;
 }
 
 export interface Block {
@@ -71,6 +72,7 @@ export interface GameState {
 	round: number; // betting round (0=pre-flop, 1=flop, 2=turn, 3=river)
 	winner?: string;
 	handNumber: number;
+	playForPoints: boolean;
 }
 
 export type HandRank =
@@ -103,6 +105,8 @@ export interface PointRequest {
 	status: ApprovalStatus;
 	approvedBy: string[];
 	createdAt: number;
+	amount?: number;
+	type?: string;
 }
 
 // ─── API ──────────────────────────────────────────────────────────────

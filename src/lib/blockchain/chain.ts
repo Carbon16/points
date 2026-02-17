@@ -37,17 +37,31 @@ export function addBlock(data: BlockData): Block {
 
 export function getPointsForUser(userId: string): number {
 	const chain = getChain();
-	return chain.filter(
-		(b) => (b.data.type === 'poker_win' || b.data.type === 'manual_point') && b.data.winner === userId
-	).length;
+	let points = 0;
+	for (const block of chain) {
+		const val = block.data.amount || 1;
+		if (block.data.winner === userId) {
+			if (block.data.type === 'poker_win' || block.data.type === 'manual_point') {
+				points += val;
+			} else if (block.data.type === 'spend') {
+				points -= val;
+			}
+		}
+	}
+	return points;
 }
 
 export function getScoreboard(): { userId: string; points: number }[] {
 	const chain = getChain();
 	const scores: Record<string, number> = {};
 	for (const block of chain) {
-		if ((block.data.type === 'poker_win' || block.data.type === 'manual_point') && block.data.winner) {
-			scores[block.data.winner] = (scores[block.data.winner] || 0) + 1;
+		const val = block.data.amount || 1;
+		if (block.data.winner) {
+			if (block.data.type === 'poker_win' || block.data.type === 'manual_point') {
+				scores[block.data.winner] = (scores[block.data.winner] || 0) + val;
+			} else if (block.data.type === 'spend') {
+				scores[block.data.winner] = (scores[block.data.winner] || 0) - val;
+			}
 		}
 	}
 	return Object.entries(scores).map(([userId, points]) => ({ userId, points }));

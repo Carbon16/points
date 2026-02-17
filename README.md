@@ -1,42 +1,78 @@
-# sv
+# Points PWA
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+The points PWA is a Progressive Web App with basic blockchain that allows users to track their points and play poker games with another user. I added a silly amount of over-engineering to this because why not.
 
-## Creating a project
+## Features
 
-If you're seeing this, you've probably already done this step. Congrats!
+- User authentication
+- Point tracking
+- Game playing
+- Request approval system
+- Identity backup and recovery
+- Silly blockchain because I can
 
-```sh
-# create a new project
-npx sv create my-app
-```
+## Deployment
 
-To recreate this project with the same configuration:
+Stick it on a VPS with
+```bash
+# Clone the repo
+git clone https://github.com/carbon16/points.git
 
-```sh
-# recreate this project
-npx sv create --template minimal --types ts --no-install ./
-```
+# Navigate to the project directory
+cd points
 
-## Developing
+# Install dependencies
+npm install
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
+# Build the project
 npm run build
+
+# Start the server
+npm run start
+```
+### Running as a service
+
+Or if you want to do it properly with a service file:
+```bash
+# Clone the repo
+git clone https://github.com/carbon16/points.git
+
+# Navigate to the project directory
+cd points
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Copy the service file to /etc/systemd/system/
+cp points.service.example /etc/systemd/system/points.service
+
+# Reload systemd
+systemctl daemon-reload
+
+# Enable the service
+systemctl enable points.service
+
+# Start the service
+systemctl start points.service
 ```
 
-You can preview the production build with `npm run preview`.
+## Security
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+This is a PWA, so it's not going to be super secure. But I did add some security features:
+
+- JWT authentication
+- Password hashing
+- Public key cryptography
+- Request approval system
+- Identity backup and recovery
+- Silly blockchain because I can
+
+## Notes & Feedback
+
+- If you want to open a pr, go for it I guess? All PRs must include a funny joke.
+- If there's a issue -- open a issue (or fix it yourself). I will maybe get round to if it I have time. No one reads this far down anyway. I like frogs.
+
+Ribbit.

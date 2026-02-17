@@ -76,6 +76,16 @@ export function getDb(): Database.Database {
 				timestamp INTEGER NOT NULL
 			);
 		`);
+
+		// Migration: add type to point_requests if missing
+		try {
+			db.prepare("ALTER TABLE point_requests ADD COLUMN type TEXT DEFAULT 'manual_point'").run();
+		} catch (e) { /* ignore */ }
+
+		// Migration: add amount to point_requests
+		try {
+			db.prepare("ALTER TABLE point_requests ADD COLUMN amount REAL DEFAULT 1.0").run();
+		} catch (e) { /* ignore */ }
 	}
 	return db;
 }

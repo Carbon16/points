@@ -122,7 +122,7 @@
 				
 				<textarea 
 					bind:value={restoreKey} 
-					placeholder='{"kty":"EC" ...}'
+					placeholder="Paste your private key JSON here..."
 					class="restore-input"
 				></textarea>
 

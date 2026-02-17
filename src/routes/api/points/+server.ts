@@ -43,14 +43,35 @@ export const POST: RequestHandler = async ({ request }) => {
 		const db = getDb();
 		const timestamp = requestData.timestamp || Date.now();
 		const signatures = requestData.signature ? { [user.userId]: requestData.signature } : {};
+		const amount = requestData.amount || 1;
 
 		db.prepare(
-			'INSERT INTO point_requests (id, requested_by, award_to, description, status, approved_by, signatures, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-		).run(id, user.userId, winnerId, description || 'Manual point', 'pending', JSON.stringify([user.userId]), JSON.stringify(signatures), timestamp);
+			'INSERT INTO point_requests (id, requested_by, award_to, description, status, approved_by, signatures, created_at, amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+		).run(id, user.userId, winnerId, description || 'Manual point', 'pending', JSON.stringify([user.userId]), JSON.stringify(signatures), timestamp, amount);
 
 		await notifyOtherUser(user.userId, {
 			title: 'Point Request',
-			body: `${user.name} wants to award a point to ${winnerId}: ${description || 'Manual point'}`,
+			body: `${user.name} wants to award ${amount} point(s) to ${winnerId}: ${description || 'Manual point'}`,
+			url: '/approve'
+		});
+
+		return json({ success: true, data: { id, status: 'pending' } });
+	}
+
+	if (type === 'spend') {
+		const id = crypto.randomUUID();
+		const db = getDb();
+		const timestamp = requestData.timestamp || Date.now();
+		const signatures = requestData.signature ? { [user.userId]: requestData.signature } : {};
+		const amount = requestData.amount || 1;
+
+		db.prepare(
+			'INSERT INTO point_requests (id, requested_by, award_to, description, status, approved_by, signatures, created_at, type, amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+		).run(id, user.userId, user.userId, description || 'Spend', 'pending', JSON.stringify([user.userId]), JSON.stringify(signatures), timestamp, 'spend', amount);
+
+		await notifyOtherUser(user.userId, {
+			title: 'Spend Request',
+			body: `${user.name} wants to spend ${amount} point(s): ${description || 'Spend'}`,
 			url: '/approve'
 		});
 

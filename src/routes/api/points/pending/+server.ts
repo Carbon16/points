@@ -67,13 +67,15 @@ export const POST: RequestHandler = async ({ request }) => {
 			.run('approved', JSON.stringify(approvedBy), JSON.stringify(signatures), requestId);
 
 		// Mine into blockchain
+		// Mine into blockchain
 		addBlock({
-			type: 'manual_point',
+			type: (row.type as any) || 'manual_point',
 			winner: row.award_to as string,
 			description: row.description as string,
 			approvedBy,
 			timestamp: row.created_at as number,
-			signatures
+			signatures,
+			amount: (row.amount as number) || 1
 		});
 
 		await notifyOtherUser(user.userId, {

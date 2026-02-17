@@ -31,34 +31,35 @@
 	}
 
 	import { GetPrivateKey, signData } from '$lib/crypto';
+	
+	let playForPoints = $state(true);
 
-	async function doAction(action: string, amount?: number) {
+	async function doAction(action: string, data?: any) {
 		error = '';
+		// If data is number, treat as amount (backward compat/betting)
+		const payload = typeof data === 'number' ? { amount: data } : data;
+		
 		try {
 			const res = await fetch('/api/game', {
 				method: 'POST',
 				headers: { ...getAuthHeaders($auth.token!), 'Content-Type': 'application/json' },
-				body: JSON.stringify({ action, amount })
+				body: JSON.stringify({ action, ...payload })
 			});
-			const data = await res.json();
-			if (!data.success) { error = data.error; return; }
+			const dataRes = await res.json(); // rename to avoid collision
+			if (!dataRes.success) { error = dataRes.error; return; }
 
-			if (data.data?.gameOver) {
-				// Capture state before clearing
-				const finalGame = game || data.data.game; // fallback if game was null (shouldn't be)
-				const winnerId = data.data.winner;
-				
-				// Record Hand History (Signed)
-				if (finalGame) {
+			if (dataRes.data?.gameOver) {
+				const finalGame = game || dataRes.data.game;
+				const winnerId = dataRes.data.winner;
+				if (finalGame && finalGame.playForPoints !== false) {
 					saveHandHistory(finalGame, winnerId);
 				}
-
-				gameOverInfo = { winner: data.data.winner, loser: data.data.loser };
+				gameOverInfo = { winner: dataRes.data.winner, loser: dataRes.data.loser };
 				game = null;
-			} else if (data.data?.game) {
-				game = data.data.game;
+			} else if (dataRes.data?.game) {
+				game = dataRes.data.game;
 			} else {
-				game = data.data;
+				game = dataRes.data;
 			}
 		} catch {
 			error = 'Connection failed';
@@ -136,83 +137,118 @@
 		const op = getOpponent(g);
 		return me && op && me.currentBet < op.currentBet;
 	}
+
+	import { fly, scale, fade } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 </script>
 
 <div class="poker-page animate-in">
 	<div class="page-header">
 		<h1><ion-icon name="card-outline"></ion-icon> Poker</h1>
+		{#if game && !game.playForPoints}
+			<span class="badge practice-badge">Practice Mode</span>
+		{/if}
 	</div>
 
 	{#if loading}
 		<p class="loading-text loading">Loading...</p>
 	{:else if gameOverInfo}
 		<!-- Game Over Screen -->
-		<div class="game-over card card-glow">
-			<span class="game-over-icon"><ion-icon name="trophy-outline"></ion-icon></span>
+		<div class="game-over card card-glow" in:scale>
+			<span class="game-over-icon" in:fly={{ y: 20, duration: 800 }}>🏆</span>
 			<h2>{getName(gameOverInfo.winner)} Wins!</h2>
 			<p>{getName(gameOverInfo.loser)} went bankrupt</p>
-			<p class="game-over-sub">Point recorded on the blockchain</p>
+			{#if game?.playForPoints !== false}
+				<p class="game-over-sub">Point recorded on the blockchain</p>
+			{:else}
+				<p class="game-over-sub">Practice game - no points recorded</p>
+			{/if}
 			<button class="btn btn-primary" onclick={() => { gameOverInfo = null; loadGame(); }}>
 				Back to Lobby
 			</button>
 		</div>
 	{:else if !game}
 		<!-- No active game -->
-		<div class="lobby card">
+		<div class="lobby card" in:fade>
 			<p class="lobby-text">No game in progress</p>
-			<button class="btn btn-primary" onclick={() => doAction('create')}>
+			
+			<div class="lobby-controls">
+				<label class="toggle-label">
+					<input type="checkbox" bind:checked={playForPoints} />
+					<span class="toggle-text">Play for Points</span>
+				</label>
+			</div>
+
+			<button class="btn btn-primary" onclick={() => doAction('create', { playForPoints })}>
 				Start New Game
+			</button>
+		</div>
+	{:else if game.phase === 'waiting'}
+		<!-- Waiting Room -->
+		<div class="lobby card" in:fade>
+			<h2>Waiting for Players...</h2>
+			<div class="waiting-list">
+				{#each game.players as p}
+					<div class="player-slot">
+						<ion-icon name="person-circle-outline"></ion-icon>
+						<span>{p.name} {p.id === $auth.userId ? '(You)' : ''}</span>
+					</div>
+				{/each}
+			</div>
+			
+			<button class="btn btn-primary" onclick={() => doAction('start')}>
+				Deal Cards
 			</button>
 		</div>
 	{:else}
 		<!-- Active Game -->
 		<div class="game-board">
 			<!-- Opponent -->
-
 			<div class="player-zone opponent-zone">
 				<div class="player-info">
 					<span class="player-name">{getOpponent(game)?.name || 'Opponent'}</span>
 					<span class="chip-count"><ion-icon name="cash-outline"></ion-icon> {getOpponent(game)?.chips}</span>
-					{#if getOpponent(game)?.isDealer}<span class="dealer-badge">D</span>{/if}
+					{#if getOpponent(game)?.isDealer}<span class="dealer-badge" in:scale>D</span>{/if}
 				</div>
 				<div class="hand-area">
 					{#if getOpponent(game)?.hand && getOpponent(game)!.hand.length > 0}
-						{#each getOpponent(game)!.hand as card}
-							<div class="playing-card" class:red={isRed(card.suit)}>
+						{#each getOpponent(game)!.hand as card (card.rank + card.suit)}
+							<div class="playing-card" class:red={isRed(card.suit)} in:fly={{ y: -50, duration: 400 }}>
 								<span class="card-rank">{card.rank}</span>
 								<span class="card-suit">{getSuitSymbol(card.suit)}</span>
 							</div>
 						{/each}
 					{:else}
-						<div class="playing-card card-back"><ion-icon name="flame-outline"></ion-icon></div>
-						<div class="playing-card card-back"><ion-icon name="flame-outline"></ion-icon></div>
+						<div class="playing-card card-back" in:fly={{ y: -50, duration: 400, delay: 0 }}>
+							<div class="pattern"></div>
+						</div>
+						<div class="playing-card card-back" in:fly={{ y: -50, duration: 400, delay: 100 }}>
+							<div class="pattern"></div>
+						</div>
 					{/if}
 				</div>
 			</div>
 
 			<!-- Community + Pot -->
-			<div class="community-zone">
-				<div class="community-cards">
-					{#each game.communityCards as card}
-						<div class="playing-card community" class:red={isRed(card.suit)}>
-							<span class="card-rank">{card.rank}</span>
-							<span class="card-suit">{getSuitSymbol(card.suit)}</span>
-						</div>
-					{/each}
-					{#each Array(5 - game.communityCards.length) as _}
-						<div class="playing-card community empty"></div>
-					{/each}
-				</div>
-				<div class="pot-display">
-					<span class="pot-label">POT</span>
-					<span class="pot-value">{game.pot}</span>
-				</div>
-				<div class="round-info">
-					Hand #{game.handNumber} · 
-					{game.phase === 'showdown' ? 'Showdown' :
-					 game.round === 0 ? 'Pre-Flop' :
-					 game.round === 1 ? 'Flop' :
-					 game.round === 2 ? 'Turn' : 'River'}
+			<div class="table-center">
+				<div class="community-zone">
+					<div class="community-cards">
+						{#each game.communityCards as card (card.rank + card.suit)}
+							<div class="playing-card community" class:red={isRed(card.suit)} in:scale={{ duration: 400, easing: cubicOut }}>
+								<span class="card-rank">{card.rank}</span>
+								<span class="card-suit">{getSuitSymbol(card.suit)}</span>
+							</div>
+						{/each}
+						{#each Array(5 - game.communityCards.length) as _, i}
+							<div class="playing-card community empty"></div>
+						{/each}
+					</div>
+					<div class="pot-display">
+						<span class="pot-label">POT</span>
+						{#key game.pot}
+							<span class="pot-value" in:scale>{game.pot}</span>
+						{/key}
+					</div>
 				</div>
 			</div>
 
@@ -220,10 +256,11 @@
 			<div class="player-zone my-zone">
 				<div class="hand-area">
 					{#if getMyPlayer(game)?.hand}
-						{#each getMyPlayer(game)!.hand as card}
-							<div class="playing-card my-card" class:red={isRed(card.suit)}>
-								<span class="card-rank">{card.rank}</span>
-								<span class="card-suit">{getSuitSymbol(card.suit)}</span>
+						{#each getMyPlayer(game)!.hand as card, i (card.rank + card.suit)}
+							<div class="playing-card my-card" class:red={isRed(card.suit)} 
+								in:fly={{ y: 100, duration: 500, delay: i * 150, easing: cubicOut }}>
+								<span class="card-top">{card.rank}{getSuitSymbol(card.suit)}</span>
+								<div class="card-center">{getSuitSymbol(card.suit)}</div>
 							</div>
 						{/each}
 					{/if}
@@ -231,48 +268,50 @@
 				<div class="player-info">
 					<span class="player-name">{getMyPlayer(game)?.name || 'You'}</span>
 					<span class="chip-count">💰 {getMyPlayer(game)?.chips}</span>
-					{#if getMyPlayer(game)?.isDealer}<span class="dealer-badge">D</span>{/if}
+					{#if getMyPlayer(game)?.isDealer}<span class="dealer-badge" in:scale>D</span>{/if}
 				</div>
 			</div>
 
 			<!-- Actions -->
 			{#if game.phase === 'betting' && isMyTurn(game)}
-				<div class="actions-bar">
+				<div class="actions-bar" in:fly={{ y: 20, duration: 300 }}>
 					{#if canCheck(game)}
 						<button class="btn btn-ghost" onclick={() => doAction('check')}>Check</button>
 					{/if}
 					{#if canCall(game)}
-						<button class="btn btn-primary" onclick={() => doAction('call')}>
-							Call ({(getOpponent(game)?.currentBet || 0) - (getMyPlayer(game)?.currentBet || 0)})
+						<button class="btn btn-primary call-btn" onclick={() => doAction('call')}>
+							Call { (getOpponent(game)?.currentBet || 0) - (getMyPlayer(game)?.currentBet || 0) }
 						</button>
 					{/if}
-					<button class="btn btn-primary" onclick={() => doAction('bet', betAmount)}>
-						Bet {betAmount}
-					</button>
-					<button class="btn btn-danger" onclick={() => doAction('fold')}>Fold</button>
-					<button class="btn btn-ghost" onclick={() => doAction('all-in')}>All In</button>
-				</div>
-				<div class="bet-slider">
-					<input type="range" min="5" max={getMyPlayer(game)?.chips || 130} step="5" bind:value={betAmount} />
-					<span class="bet-label">{betAmount}</span>
+					
+					<div class="bet-group">
+						<button class="btn btn-primary" onclick={() => doAction('bet', betAmount)}>
+							Bet {betAmount}
+						</button>
+						<input type="range" min="5" max={getMyPlayer(game)?.chips || 130} step="5" bind:value={betAmount} />
+					</div>
+
+					<button class="btn btn-danger ghost" onclick={() => doAction('fold')}>Fold</button>
+					<button class="btn btn-warning ghost" onclick={() => doAction('all-in')}>ALL IN</button>
 				</div>
 			{:else if game.phase === 'betting'}
-				<div class="waiting-bar">
-					<p class="waiting-text loading">Waiting for {getName(game.players[game.currentPlayerIndex]?.id)}...</p>
+				<div class="waiting-bar" in:fade>
+					<div class="spinner"></div>
+					<p class="waiting-text">Opponent thinking...</p>
 				</div>
 			{:else if game.phase === 'showdown'}
-				<div class="showdown-bar">
+				<div class="showdown-bar" in:scale>
 					<p class="showdown-text">
-						{game.winner ? `${getName(game.winner)} wins this hand!` : 'Split pot!'}
+						{game.winner ? `${getName(game.winner)} wins!` : 'Split pot!'}
 					</p>
 					<button class="btn btn-primary" onclick={() => doAction('next-hand')}>
 						Next Hand →
 					</button>
 				</div>
 			{/if}
-
+			
 			{#if error}
-				<p class="error">{error}</p>
+				<div class="toast error" transition:fly={{ y: 50 }}>{error}</div>
 			{/if}
 		</div>
 	{/if}
@@ -283,195 +322,184 @@
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
+		height: 100%;
 	}
-	h1 { font-size: 1.3rem; font-weight: 800; }
+	h1 { font-size: 1.3rem; font-weight: 800; text-align: center; opacity: 0.5; display: flex; align-items: center; justify-content: center; gap: 8px;}
+	.practice-badge { font-size: 0.6rem; background: var(--bg-secondary); color: var(--text-muted); padding: 4px 8px; border-radius: 4px; }
 
 	.lobby, .game-over {
+		text-align: center;
+		padding: 40px;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 16px;
-		padding: 40px 20px;
-		text-align: center;
+		gap: 20px;
 	}
-	.lobby-text { color: var(--text-muted); }
-
-	.game-over-icon { font-size: 3rem; }
-	.game-over h2 { font-size: 1.5rem; color: var(--gold); }
-	.game-over-sub { color: var(--text-muted); font-size: 0.8rem; }
 
 	.game-board {
+		flex: 1;
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		justify-content: space-between;
+		/* Dark Premium Background (Offsuit Style) */
+		background: radial-gradient(circle at center, #27272a 0%, #09090b 100%);
+		border-radius: 20px;
+		padding: 20px;
+		box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+		border: 8px solid #18181b;
+		position: relative;
+		min-height: 500px;
 	}
+
+	/* ... (existing styles) */
+
+	/* New Styles for Toggle and Waiting */
+	.lobby-controls {
+		margin-bottom: 20px;
+	}
+	.toggle-label {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		cursor: pointer;
+		background: var(--bg-secondary);
+		padding: 10px 20px;
+		border-radius: 20px;
+	}
+	.toggle-text { font-weight: 600; }
+	
+	.waiting-list {
+		display: flex;
+		gap: 20px;
+		margin: 20px 0;
+	}
+	.player-slot {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		font-size: 0.9rem;
+		color: var(--text-muted);
+	}
+	.player-slot ion-icon { font-size: 2rem; }
 
 	.player-zone {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
 		align-items: center;
+		gap: 10px;
+		z-index: 2;
 	}
-	.opponent-zone { flex-direction: column; }
-	.my-zone { flex-direction: column-reverse; }
+	.opponent-zone { margin-bottom: 20px; }
+	.my-zone { margin-top: auto; flex-direction: column-reverse; }
 
 	.player-info {
+		background: rgba(0,0,0,0.6);
+		padding: 6px 16px;
+		border-radius: 20px;
 		display: flex;
 		align-items: center;
 		gap: 10px;
+		border: 1px solid rgba(255,255,255,0.1);
 	}
-	.player-name {
-		font-weight: 600;
-		font-size: 0.85rem;
-	}
-	.chip-count {
-		font-family: var(--font-mono);
-		font-size: 0.8rem;
-		color: var(--gold);
-	}
-	.dealer-badge {
-		background: var(--accent);
-		color: white;
-		width: 20px;
-		height: 20px;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 0.65rem;
-		font-weight: 700;
-	}
+	.player-name { font-weight: 700; font-size: 0.8rem; color: white; }
+	.chip-count { font-family: 'Geist Mono', monospace; color: #ffd700; font-weight: 700; }
 
-	.hand-area {
-		display: flex;
-		gap: 8px;
-		justify-content: center;
-	}
+	.hand-area { display: flex; gap: 4px; justify-content: center; height: 90px; }
 
 	.playing-card {
-		width: 52px;
-		height: 72px;
+		width: 56px;
+		height: 80px;
 		background: white;
 		border-radius: 6px;
+		box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
+		position: relative;
+		font-family: 'Geist Mono', monospace;
 		font-weight: 700;
-		color: #1a1a2e;
-		box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-		transition: transform var(--transition);
 	}
-	.playing-card.red { color: #dc2626; }
-	.playing-card.my-card {
-		width: 60px;
-		height: 84px;
-	}
-	.playing-card.my-card:hover { transform: translateY(-4px); }
-	.playing-card.community {
-		width: 46px;
-		height: 64px;
-		font-size: 0.85rem;
-	}
-	.playing-card.empty {
-		background: rgba(255,255,255,0.05);
-		border: 1px dashed rgba(255,255,255,0.1);
-		box-shadow: none;
-	}
-	.playing-card.card-back {
-		background: var(--accent-dark);
-		color: var(--accent-light);
-		font-size: 1.5rem;
+	.playing-card.red { color: #d93025; }
+	.card-back {
+		background: #b22222;
+		border: 2px solid white;
+		background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0px, rgba(255,255,255,0.1) 10px, transparent 10px, transparent 20px);
 	}
 
-	.card-rank { font-size: 1rem; line-height: 1; }
-	.card-suit { font-size: 0.85rem; line-height: 1; }
+	.my-card {
+		width: 70px;
+		height: 100px;
+		border: 1px solid #ddd;
+	}
+	.my-card .card-top { position: absolute; top: 4px; left: 4px; font-size: 0.9rem; line-height: 1; }
+	.my-card .card-center { font-size: 2rem; }
 
-	.community-zone {
+	.table-center {
+		position: absolute;
+		top: 50%; left: 50%;
+		transform: translate(-50%, -50%);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 10px;
-		padding: 16px;
-		background: rgba(16, 100, 60, 0.15);
-		border-radius: var(--radius);
-		border: 1px solid rgba(16, 185, 129, 0.1);
+		gap: 16px;
+		width: 100%;
 	}
+	
+	.community-cards { display: flex; gap: 8px; }
+	.playing-card.community { width: 50px; height: 72px; font-size: 0.8rem; }
+	.playing-card.empty { background: rgba(0,0,0,0.2); box-shadow: none; border: 2px dashed rgba(255,255,255,0.1); }
 
-	.community-cards {
-		display: flex;
-		gap: 6px;
-		justify-content: center;
+	.pot-display {
+		background: rgba(0,0,0,0.4);
+		padding: 8px 24px;
+		border-radius: 30px;
+		border: 1px solid rgba(255,215,0,0.3);
+		text-align: center;
 	}
-
-	.pot-display { display: flex; align-items: baseline; gap: 6px; }
-	.pot-label {
-		font-size: 0.65rem;
-		font-weight: 700;
-		color: var(--text-muted);
-		letter-spacing: 0.1em;
-	}
-	.pot-value {
-		font-size: 1.5rem;
-		font-weight: 800;
-		font-family: var(--font-mono);
-		color: var(--gold);
-	}
-
-	.round-info {
-		font-size: 0.7rem;
-		color: var(--text-muted);
-	}
+	.pot-label { display: block; font-size: 0.6rem; color: #aaa; letter-spacing: 2px; }
+	.pot-value { font-size: 1.4rem; color: #ffd700; font-weight: 800; }
 
 	.actions-bar {
 		display: flex;
-		gap: 6px;
 		flex-wrap: wrap;
+		gap: 8px;
 		justify-content: center;
+		padding: 20px;
+		background: rgba(0,0,0,0.8);
+		border-radius: 16px;
+		backdrop-filter: blur(10px);
+		margin-top: 10px;
 	}
-	.actions-bar .btn { font-size: 0.8rem; padding: 10px 14px; }
-
-	.bet-slider {
+	
+	.bet-group {
 		display: flex;
-		align-items: center;
-		gap: 10px;
-		padding: 0 20px;
+		flex-direction: column;
+		gap: 4px;
+		background: rgba(255,255,255,0.05);
+		padding: 8px;
+		border-radius: 8px;
 	}
-	.bet-slider input[type="range"] {
-		flex: 1;
-		accent-color: var(--accent);
-		background: transparent;
-		border: none;
-		padding: 0;
-	}
-	.bet-label {
-		font-family: var(--font-mono);
+	input[type="range"] { accent-color: var(--accent); }
+
+	.toast {
+		position: absolute;
+		bottom: 20px; left: 50%; transform: translateX(-50%);
+		background: #ef4444; color: white;
+		padding: 10px 20px;
+		border-radius: 30px;
+		box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 		font-weight: 600;
-		color: var(--accent-light);
-		min-width: 30px;
-		text-align: right;
 	}
 
-	.waiting-bar, .showdown-bar {
-		text-align: center;
-		padding: 16px;
+	.spinner {
+		width: 20px; height: 20px;
+		border: 2px solid rgba(255,255,255,0.1);
+		border-top-color: white;
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+		margin: 0 auto 8px;
 	}
-	.waiting-text { color: var(--text-muted); font-size: 0.85rem; }
-	.showdown-text {
-		font-weight: 600;
-		color: var(--gold);
-		margin-bottom: 12px;
-	}
-
-	.error {
-		color: var(--danger);
-		text-align: center;
-		font-size: 0.8rem;
-	}
-
-	.loading-text {
-		text-align: center;
-		color: var(--text-muted);
-		padding: 40px;
-	}
+	@keyframes spin { 100% { transform: rotate(360deg); } }
 </style>
