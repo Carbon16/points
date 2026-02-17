@@ -3,15 +3,19 @@
 	import { auth, getAuthHeaders } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { GetPublicKey, GetPrivateKey, exportPrivateKey, exportPublicKey, digestMessage } from '$lib/crypto';
+	import { initPush } from '$lib/push-client';
 
 	let fingerprint = $state('Loading...');
 	let showPrivateKey = $state(false);
 	let privateKeyJson = $state('');
 	let copyStatus = $state('');
+	let notificationStatus = $state('checking...');
+	let notificationEnabled = $state(false);
 
 	onMount(async () => {
 		if (!$auth.token) { goto('/login'); return; }
 		await loadIdentity();
+		checkNotificationStatus();
 	});
 
 	async function loadIdentity() {
@@ -52,6 +56,52 @@
 			copyStatus = 'Failed to copy';
 		}
 	}
+
+	function checkNotificationStatus() {
+		if (!('Notification' in window)) {
+			notificationStatus = 'Not supported';
+			return;
+		}
+		const permission = Notification.permission;
+		if (permission === 'granted') {
+			notificationStatus = 'Enabled';
+			notificationEnabled = true;
+		} else if (permission === 'denied') {
+			notificationStatus = 'Blocked (check browser settings)';
+		} else {
+			notificationStatus = 'Disabled';
+		}
+	}
+
+	async function enableNotifications() {
+		if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+			alert('Notifications are not supported on this device');
+			return;
+		}
+
+		try {
+			// Request permission (iOS requires this to be from user gesture)
+			const permission = await Notification.requestPermission();
+			
+			if (permission === 'granted') {
+				// Register service worker if not already registered
+				await navigator.serviceWorker.register('/service-worker.js');
+				
+				// Initialize push subscription
+				await initPush($auth.token!);
+				
+				notificationStatus = 'Enabled';
+				notificationEnabled = true;
+				alert('Notifications enabled successfully!');
+			} else {
+				notificationStatus = 'Permission denied';
+				alert('Notification permission was denied');
+			}
+		} catch (e) {
+			console.error('Failed to enable notifications:', e);
+			alert('Failed to enable notifications: ' + (e as Error).message);
+		}
+	}
 </script>
 
 <div class="profile-page animate-in">
@@ -71,6 +121,20 @@
 			<code class="fingerprint">{fingerprint}</code>
 			<p class="help-text">Verify this matches what other players see.</p>
 		</div>
+	</div>
+
+	<div class="card notification-card">
+		<h3><ion-icon name="notifications-outline"></ion-icon> Notifications</h3>
+		<div class="notification-status">
+			<span class="status-label">Status:</span>
+			<span class="status-value" class:enabled={notificationEnabled}>{notificationStatus}</span>
+		</div>
+		{#if !notificationEnabled && notificationStatus !== 'Not supported'}
+			<button class="btn btn-primary" onclick={enableNotifications}>
+				<ion-icon name="notifications-outline"></ion-icon> Enable Notifications
+			</button>
+			<p class="help-text">Get notified when it's your turn to play or when you receive points.</p>
+		{/if}
 	</div>
 
 	<div class="card backup-card">
@@ -106,6 +170,10 @@
 		align-items: center;
 	}
 	h1 { font-size: 1.3rem; font-weight: 800; }
+
+	.backup-card, .notification-card {
+		padding: 24px;
+	}
 
 	.identity-card {
 		display: flex;

@@ -106,48 +106,8 @@
 			if (action === 'approve') {
 				const pk = await GetPrivateKey();
 				if (pk) {
-					// Reconstruct payload to sign
-					// Note: If type is 'spend', payload is different!
-					// We need to know the type here.
-					// But we don't have 'type' in PointReq interface explicitly?
-					// Wait, I added it to interface above.
-					// But does the API return it?
-					// I updated 'db.ts' to add 'type' column.
-					// I assume 'pending' API returns * from point_requests.
-					
 					let payload = '';
 					if (req.description.startsWith('[SPEND]')) {
-						// Reconstruct spend payload
-						// spend:requesterId:amount:reason:timestamp
-						// Amount is not stored separately! It's in description? Or implicitly 1?
-						// "Spend a Point" implies 1 point?
-						// My submit logic used 'spendAmount' state variable.
-						// But I didn't verify that the amount is actually stored anywhere except implicit in description or Logic?
-						// The 'spend' block subtracts 1 point per block in 'getScoreboard'.
-						// So currently spending is always 1 point per block?
-						// My submit payload used `spend:${$auth.userId}:${spendAmount}:${desc}:${timestamp}`
-						// But the block logic only subtracts 1.
-						// If I want to spend X points, I probably need X blocks or a value in the block.
-						// For now, let's assume spendAmount is 1. If it's > 1, the signature won't match if I verify against 1.
-						// But wait, the Verifier (verify.ts) needs to verify this signature later too.
-						// It reconstructs payload from block data.
-						// Block data has description, winner, timestamp.
-						// It does NOT have amount.
-						// So for now, we MUST assume spend = 1 point per request.
-						// Or I need to change how block data works to include amount.
-						
-						// DECISION: For "Absurd Integrity", let's force amount=1 for simplicity in this iteration, 
-						// or parse from description?
-						// Let's assume amount=1 for now to match `getScoreboard` logic.
-						// And update `submitRequest` to use fixed '1' or ensure payload matches what verifier can reconstruct.
-						// The verifier sees `manual_point` or `spend`.
-						// For `spend`, payload should be `spend:winner:desc:timestamp` ?
-						// My `submitRequest` used `spend:user:amount:desc:timestamp`. This is inconsistent.
-						// I should align with `verify.ts` logic which reconstructs payload.
-						
-						// Let's change `submitRequest` payload to `spend:${$auth.userId}:${desc}:${timestamp}` (drop amount).
-						// And assume checking description "[SPEND]" is enough to know it's a spend.
-						
 						payload = `spend:${req.requested_by}:${req.description}:${req.created_at}`;
 					} else {
 						payload = `manual_point:${req.award_to}:${req.description}:${req.created_at}`;

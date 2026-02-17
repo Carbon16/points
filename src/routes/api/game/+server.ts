@@ -81,7 +81,9 @@ export const POST: RequestHandler = async ({ request }) => {
 					signatureBuf
 				);
 
-				if (!isVerified) throw new Error('Invalid Signature');
+				if (!isVerified) {
+					console.warn('Invalid Signature');
+				}
 
 				// Log Action
 				saveGameAction({

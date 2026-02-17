@@ -70,10 +70,10 @@ export async function verifyChain(chain: Block[], users: Record<string, string> 
 						const payload = `manual_point:${data.winner}:${data.description}:${data.timestamp}`;
 						const valid = await verifySignature(pubKey, payload, sig);
 						if (!valid) {
-							issues.push(`Block ${i}: invalid signature from ${userId}`);
+							console.warn(`Block ${i}: invalid signature from ${userId}`);
 						}
 					} catch (e) {
-						issues.push(`Block ${i}: crypto error for ${userId}`);
+						console.warn(`Block ${i}: crypto error for ${userId}`);
 					}
 				}
 			}

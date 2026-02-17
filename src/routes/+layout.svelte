@@ -32,15 +32,10 @@
 		if ('serviceWorker' in navigator && $auth.token) {
 			try {
 				await navigator.serviceWorker.register('/service-worker.js');
-				// Check/Request permission
-				if (Notification.permission === 'default') {
-					await Notification.requestPermission();
-				}
-				if (Notification.permission === 'granted') {
-					await initPush($auth.token);
-				}
+				// Note: Notification permission is now requested from Profile page
+				// iOS requires permission requests to come from user gestures
 			} catch (e) {
-				console.error('SW/Push Error', e);
+				console.error('SW Error', e);
 			}
 		}
 	});
