@@ -46,15 +46,21 @@
 
 		// Attempt to lock screen orientation to portrait when possible.
 		// This works on many modern mobile browsers; it will silently fail where unsupported.
-		try {
-			if ((screen as any)?.orientation?.lock) {
-				await (screen as any).orientation.lock('portrait-primary');
-			} else {
-				const lockFn = (screen as any).lockOrientation || (screen as any).mozLockOrientation || (screen as any).msLockOrientation;
-				if (lockFn) lockFn('portrait-primary');
+		// Most browsers require fullscreen mode for this to work, so we primarily target standalone (PWA) mode.
+		if (isStandalone) {
+			try {
+				if ((screen as any)?.orientation?.lock) {
+					await (screen as any).orientation.lock('portrait-primary');
+				} else {
+					const lockFn = (screen as any).lockOrientation || (screen as any).mozLockOrientation || (screen as any).msLockOrientation;
+					if (lockFn) lockFn('portrait-primary');
+				}
+			} catch (err: any) {
+				// Silently fail for "Insecure" errors as they are common browser limitations
+				if (err.name !== 'NotAllowedError' && err.name !== 'SecurityError') {
+					console.warn('Orientation lock unavailable:', err.message);
+				}
 			}
-		} catch (err) {
-			console.warn('Orientation lock unavailable or denied', err);
 		}
 	});
 
