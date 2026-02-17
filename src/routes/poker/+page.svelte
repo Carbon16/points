@@ -154,7 +154,9 @@
 	function getName(id?: string) {
 		const player = game?.players.find(p => p.id === id);
 		if (player) return player.name;
-		return id === 'player1' ? 'Player 1' : 'Player 2';
+		if (id === 'player1') return 'Player 1';
+		if (id === 'player2') return 'Player 2';
+		return id || 'Unknown';
 	}
 
 	function getSuitSymbol(suit: string) {

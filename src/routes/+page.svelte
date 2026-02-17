@@ -12,7 +12,7 @@
 
 	onMount(async () => {
 		if (!$auth.token) { goto('/login'); return; }
-		const authUsers = await fetch('/api/auth').then(r => r.json());
+		const authUsers = await fetch('/api/auth', { headers: getAuthHeaders($auth.token!) }).then(r => r.json());
 		if (authUsers.success) users = authUsers.data;
 		await loadData();
 	});
@@ -39,7 +39,9 @@
 	function getPlayerName(id: string) {
 		const user = users.find(u => u.id === id);
 		if (user) return user.name;
-		return id === 'player1' ? 'Player 1' : 'Player 2';
+		if (id === 'player1') return 'Player 1';
+		if (id === 'player2') return 'Player 2';
+		return id;
 	}
 
 	function getScore(id: string) {
