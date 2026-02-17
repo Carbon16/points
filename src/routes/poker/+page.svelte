@@ -8,6 +8,12 @@
 	let loading = $state(true);
 	let error = $state('');
 	let betAmount = $state(5);
+	let isDragging = $state(false);
+	
+	const minBet = 5;
+	const maxBet = $derived(getMyPlayer(game)?.chips || 100);
+	const thumbPosition = $derived(((betAmount - minBet) / (maxBet - minBet)) * 100);
+	
 	let gameOverInfo = $state<{ winner?: string; loser?: string } | null>(null);
 	let pollInterval: ReturnType<typeof setInterval>;
 
@@ -353,10 +359,37 @@
 					{/if}
 					
 					<div class="bet-group">
-						<button class="btn btn-primary" onclick={() => doAction('bet', betAmount)}>
+						<div class="slider-wrapper">
+							<div class="slider-bubble" class:visible={isDragging} style="left: {thumbPosition}%">
+								<span class="bubble-value">{betAmount}</span>
+								<div class="bubble-tail"></div>
+							</div>
+							
+							<div class="custom-slider">
+								<div class="slider-track"></div>
+								<div class="slider-fill" style="width: {thumbPosition}%"></div>
+								<input 
+									type="range" 
+									min={minBet} 
+									max={maxBet} 
+									step="5" 
+									bind:value={betAmount}
+									onmousedown={() => isDragging = true}
+									onmouseup={() => isDragging = false}
+									ontouchstart={() => isDragging = true}
+									ontouchend={() => isDragging = false}
+								/>
+							</div>
+							
+							<div class="slider-meta">
+								<span class="min-label">{minBet}</span>
+								<span class="max-label">{maxBet}</span>
+							</div>
+						</div>
+
+						<button class="btn btn-primary bet-btn" onclick={() => doAction('bet', betAmount)}>
 							Bet {betAmount}
 						</button>
-						<input type="range" min="5" max={getMyPlayer(game)?.chips || 130} step="5" bind:value={betAmount} />
 					</div>
 
 					<button class="btn btn-danger ghost" onclick={() => doAction('fold')}>Fold</button>
@@ -568,12 +601,113 @@
 	.bet-group {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		background: rgba(255,255,255,0.05);
-		padding: 8px;
-		border-radius: 8px;
+		gap: 16px;
+		width: 100%;
+		padding: 4px;
 	}
-	input[type="range"] { accent-color: var(--accent); }
+
+	.slider-wrapper {
+		position: relative;
+		padding: 24px 0 12px;
+		width: 100%;
+	}
+
+	.slider-bubble {
+		position: absolute;
+		top: -12px;
+		transform: translateX(-50%) scale(0.8);
+		background: var(--accent);
+		color: white;
+		padding: 6px 12px;
+		border-radius: 12px;
+		font-weight: 800;
+		font-size: 0.9rem;
+		pointer-events: none;
+		opacity: 0;
+		transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s;
+		box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+		z-index: 5;
+	}
+	.slider-bubble.visible {
+		opacity: 1;
+		transform: translateX(-50%) scale(1);
+	}
+	.bubble-tail {
+		position: absolute;
+		bottom: -4px;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 0; height: 0;
+		border-left: 6px solid transparent;
+		border-right: 6px solid transparent;
+		border-top: 6px solid var(--accent);
+	}
+
+	.custom-slider {
+		position: relative;
+		height: 12px;
+		display: flex;
+		align-items: center;
+	}
+	.slider-track {
+		position: absolute;
+		width: 100%;
+		height: 8px;
+		background: rgba(255,,255,0.08);
+		border-radius: 4px;
+		border: 1px solid rgba(255,255,255,0.05);
+	}
+	.slider-fill {
+		position: absolute;
+		height: 8px;
+		background: linear-gradient(90deg, var(--accent), var(--accent-light));
+		border-radius: 4px;
+		box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
+	}
+
+	.custom-slider input[type="range"] {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 100%;
+		background: transparent;
+		position: relative;
+		z-index: 2;
+		cursor: pointer;
+		margin: 0;
+	}
+
+	.custom-slider input[type="range"]::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		height: 24px;
+		width: 24px;
+		border-radius: 50%;
+		background: white;
+		border: 4px solid var(--accent);
+		box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+		transition: transform 0.1s;
+	}
+	.custom-slider input[type="range"]:active::-webkit-slider-thumb {
+		transform: scale(1.2);
+		box-shadow: 0 0 15px var(--accent);
+	}
+
+	.slider-meta {
+		display: flex;
+		justify-content: space-between;
+		margin-top: 8px;
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		font-weight: 600;
+	}
+
+	.bet-btn {
+		width: 100%;
+		font-weight: 800;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		height: 44px;
+	}
 
 	.showdown-bar {
 		display: flex;
