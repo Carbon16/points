@@ -318,23 +318,32 @@ function showdown(game: GameState): void {
 
 	const result = compareHands(p1Hand, p2Hand);
 
+	// Helper to format hand rank
+	const formatHandRank = (rank: string) => {
+		return rank.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+	};
+
 	if (result > 0) {
 		game.players[0].chips += game.pot;
 		game.winner = game.players[0].id;
+		game.winReason = `with ${formatHandRank(p1Hand.rank)}`;
 	} else if (result < 0) {
 		game.players[1].chips += game.pot;
 		game.winner = game.players[1].id;
+		game.winReason = `with ${formatHandRank(p2Hand.rank)}`;
 	} else {
 		// Split pot
 		const half = Math.floor(game.pot / 2);
 		game.players[0].chips += half;
 		game.players[1].chips += game.pot - half;
+		game.winReason = `both had ${formatHandRank(p1Hand.rank)}`;
 	}
 	game.pot = 0;
 }
 
 function finishHand(game: GameState, winnerId: string): GameState {
 	game.winner = winnerId;
+	game.winReason = 'opponent folded';
 	game.phase = 'showdown';
 	return game;
 }

@@ -71,6 +71,7 @@ export interface GameState {
 	deck: Card[];
 	round: number; // betting round (0=pre-flop, 1=flop, 2=turn, 3=river)
 	winner?: string;
+	winReason?: string; // e.g., "with a Flush" or "opponent folded"
 	handNumber: number;
 	playForPoints: boolean;
 }

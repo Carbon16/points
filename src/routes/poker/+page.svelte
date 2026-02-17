@@ -365,10 +365,19 @@
 				</div>
 			{:else if game.phase === 'showdown'}
 				<div class="showdown-bar" in:scale>
-					<p class="showdown-text">
-						{game.winner ? `${getName(game.winner)} wins!` : 'Split pot!'}
-					</p>
-					<button class="btn btn-primary" onclick={() => doAction('next-hand')}>
+					<div class="showdown-content">
+						<p class="showdown-text" in:fly={{ y: -20, delay: 200 }}>
+							{#if game.winner}
+								{getName(game.winner)} wins!
+							{:else}
+								Split pot!
+							{/if}
+						</p>
+						{#if game.winReason}
+							<p class="win-reason" in:fly={{ y: -20, delay: 400 }}>{game.winReason}</p>
+						{/if}
+					</div>
+					<button class="btn btn-primary" in:fly={{ y: 20, delay: 800 }} onclick={() => doAction('next-hand')}>
 						Next Hand →
 					</button>
 				</div>
@@ -562,6 +571,53 @@
 		border-radius: 8px;
 	}
 	input[type="range"] { accent-color: var(--accent); }
+
+	.showdown-bar {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 24px;
+		padding: 32px;
+		background: rgba(0,0,0,0.9);
+		border-radius: 16px;
+		border: 1px solid rgba(255,255,255,0.1);
+		backdrop-filter: blur(10px);
+	}
+
+	.showdown-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.showdown-text {
+		font-size: 1.5rem;
+		font-weight: 800;
+		color: #ffd700;
+		text-shadow: 0 0 20px rgba(255,215,0,0.5);
+		margin: 0;
+	}
+
+	.win-reason {
+		font-size: 1rem;
+		color: #aaa;
+		margin: 0;
+		font-style: italic;
+	}
+
+	.waiting-bar {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 12px;
+		padding: 20px;
+	}
+
+	.waiting-text {
+		color: var(--text-muted);
+		font-size: 0.9rem;
+	}
 
 	.toast {
 		position: absolute;
