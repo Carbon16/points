@@ -214,8 +214,8 @@
 			{/if}
 
 			<div class="form-group">
-				<label>Reason:</label>
-				<input type="text" bind:value={description} placeholder={mode === 'earn' ? "e.g. Won pool" : "e.g. Pint"} />
+				<label for="reason">Reason:</label>
+				<input id="reason" type="text" bind:value={description} placeholder={mode === 'earn' ? "e.g. Won pool" : "e.g. Pint"} />
 			</div>
 			<button class="btn btn-success" onclick={submitRequest} disabled={submitting}>
 				{submitting ? 'Submitting...' : 'Submit Request'}
