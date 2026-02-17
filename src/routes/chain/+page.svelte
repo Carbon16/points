@@ -9,9 +9,12 @@
 	let verification = $state<ChainVerification | null>(null);
 	let verifying = $state(false);
 	let loading = $state(true);
+	let users = $state<{id: string, name: string}[]>([]);
 
 	onMount(async () => {
 		if (!$auth.token) { goto('/login'); return; }
+		const authUsers = await fetch('/api/auth', { headers: getAuthHeaders($auth.token!) }).then(r => r.json());
+		if (authUsers.success) users = authUsers.data;
 		await loadChain();
 	});
 
@@ -32,7 +35,7 @@
 		// Fetch users to get public keys
 		let usersMap: Record<string, string> = {};
 		try {
-			const res = await fetch('/api/auth');
+			const res = await fetch('/api/auth', { headers: getAuthHeaders($auth.token!) });
 			const data = await res.json();
 			if (data.success) {
 				data.data.forEach((u: any) => {
@@ -50,7 +53,11 @@
 	}
 
 	function getName(id?: string) {
-		return id === 'player1' ? 'Player 1' : id === 'player2' ? 'Player 2' : id || 'System';
+		const user = users.find(u => u.id === id);
+		if (user) return user.name;
+		if (id === 'player1') return 'Player 1';
+		if (id === 'player2') return 'Player 2';
+		return id || 'System';
 	}
 
 	function formatTime(ts: number) {
