@@ -1,6 +1,9 @@
 // Client-side crypto using Web Crypto API
 
 export async function generateKeyPair(): Promise<CryptoKeyPair> {
+	if (!window.crypto || !window.crypto.subtle) {
+		throw new Error('Web Crypto API unauthorized. Site must be served over HTTPS or localhost.');
+	}
 	return window.crypto.subtle.generateKey(
 		{
 			name: 'ECDSA',

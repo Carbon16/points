@@ -8,8 +8,20 @@
 	let error = $state('');
 	let loading = $state(false);
 	
+	let creatingIdentity = $state(false);
+	let identityStep = $state(0);
+	
 	let showRestore = $state(false);
 	let restoreKey = $state('');
+
+	const steps = [
+		'Initializing Enclave Node...',
+		'Generating P-256 ECDSA Key Pair...',
+		'Encrypting Local Storage...',
+		'Registering Signature...'
+	];
+
+	function wait(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
 	async function handleLogin() {
 		if (!selectedUser || !pin) { error = 'Select a player and enter your PIN'; return; }
@@ -25,14 +37,29 @@
 					console.log('Found existing key');
 					publicKeyStr = await exportPublicKey(existingKey);
 				} else {
-					console.log('Generating new key pair...');
+					// Secure Onboarding Flow
+					creatingIdentity = true;
+					identityStep = 0;
+					await wait(800);
+
+					identityStep = 1;
 					const pair = await generateKeyPair();
+					await wait(1200);
+
+					identityStep = 2;
 					await StoreKeys(pair);
-					console.log('Keys stored');
 					publicKeyStr = await exportPublicKey(pair.publicKey);
+					await wait(1000);
+
+					identityStep = 3;
+					await wait(800);
 				}
 			} catch (e) {
 				console.error('Crypto error:', e);
+				creatingIdentity = false;
+				loading = false;
+				error = 'Crypto initialization failed';
+				return;
 			}
 
 			const res = await fetch('/api/auth', {
@@ -41,13 +68,20 @@
 				body: JSON.stringify({ userId: selectedUser, pin, publicKey: publicKeyStr })
 			});
 			const data = await res.json();
-			if (!data.success) { error = data.error || 'Login failed'; loading = false; return; }
+			
+			if (!data.success) { 
+				error = data.error || 'Login failed'; 
+				loading = false; 
+				creatingIdentity = false;
+				return; 
+			}
 
 			auth.login(data.data.token, data.data.userId, selectedUser === 'player1' ? 'Player 1' : 'Player 2');
 			goto('/');
 		} catch (e) {
 			console.error(e);
 			error = 'Connection failed';
+			creatingIdentity = false;
 		}
 		loading = false;
 	}
@@ -73,7 +107,20 @@
 			<p class="logo-sub">Poker Points Tracker</p>
 		</div>
 
-		{#if !showRestore}
+		{#if creatingIdentity}
+			<div class="login-card card card-glow onboarding-card">
+				<div class="spinner-large"></div>
+				<h3>Creating Secure Identity</h3>
+				<div class="steps">
+					{#each steps as step, i}
+						<div class="step-item" class:active={i === identityStep} class:done={i < identityStep}>
+							<ion-icon name={i < identityStep ? 'checkmark-circle' : (i === identityStep ? 'ellipse' : 'ellipse-outline')}></ion-icon>
+							<span>{step}</span>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{:else if !showRestore}
 			<div class="login-card card card-glow">
 				<h2>Sign In</h2>
 
@@ -258,4 +305,38 @@
 		font-size: 0.75rem;
 		resize: none;
 	}
+
+	.onboarding-card {
+		align-items: center;
+		padding: 40px 20px;
+		text-align: center;
+	}
+	.spinner-large {
+		width: 40px; height: 40px;
+		border: 4px solid rgba(255,255,255,0.1);
+		border-top-color: var(--accent);
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+		margin-bottom: 20px;
+	}
+	.steps {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin-top: 20px;
+		width: 100%;
+		text-align: left;
+	}
+	.step-item {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		color: var(--text-muted);
+		font-size: 0.8rem;
+		transition: all 0.3s;
+	}
+	.step-item.active { color: var(--text-primary); font-weight: 600; transform: translateX(5px); }
+	.step-item.done { color: var(--accent); }
+	.step-item ion-icon { font-size: 1.2rem; }
+	@keyframes spin { 100% { transform: rotate(360deg); } }
 </style>

@@ -26,6 +26,7 @@
 	
 	let mode = $state<'earn' | 'spend'>('earn');
 	let spendAmount = $state(1);
+	let earnAmount = $state(1);
 
 	onMount(async () => {
 		if (!$auth.token) { goto('/login'); return; }
@@ -43,7 +44,7 @@
 	}
 
 	function getModeTitle() {
-		return mode === 'earn' ? 'Request a Point' : 'Spend a Point';
+		return mode === 'earn' ? 'Request Points' : 'Spend Points';
 	}
 
 	async function submitRequest() {

@@ -34,9 +34,12 @@
 			if (priv) {
 				privateKeyJson = await exportPrivateKey(priv);
 				showPrivateKey = true;
+			} else {
+				alert('No private key found in storage. You may need to restore your identity.');
 			}
 		} catch (e) {
-			alert('Failed to export private key');
+			console.error(e);
+			alert('Failed to export private key: ' + (e as Error).message);
 		}
 	}
 

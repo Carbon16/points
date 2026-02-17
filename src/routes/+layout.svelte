@@ -4,6 +4,9 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 
+	import { onMount } from 'svelte';
+	import { initPush } from '$lib/push-client';
+
 	let { children } = $props();
 
 	const navItems = [
@@ -17,6 +20,23 @@
 		auth.logout();
 		goto('/login');
 	}
+
+	onMount(async () => {
+		if ('serviceWorker' in navigator && $auth.token) {
+			try {
+				await navigator.serviceWorker.register('/service-worker.js');
+				// Check/Request permission
+				if (Notification.permission === 'default') {
+					await Notification.requestPermission();
+				}
+				if (Notification.permission === 'granted') {
+					await initPush($auth.token);
+				}
+			} catch (e) {
+				console.error('SW/Push Error', e);
+			}
+		}
+	});
 </script>
 
 {#if !$auth.token}

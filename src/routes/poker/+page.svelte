@@ -144,10 +144,14 @@
 
 <div class="poker-page animate-in">
 	<div class="page-header">
+		<button class="btn btn-ghost icon-btn" onclick={() => goto('/profile')}>
+			<ion-icon name="person-circle-outline"></ion-icon>
+		</button>
 		<h1><ion-icon name="card-outline"></ion-icon> Poker</h1>
 		{#if game && !game.playForPoints}
 			<span class="badge practice-badge">Practice Mode</span>
 		{/if}
+		<div style="width: 40px;"></div> <!-- Spacer -->
 	</div>
 
 	{#if loading}
@@ -213,7 +217,7 @@
 				<div class="hand-area">
 					{#if getOpponent(game)?.hand && getOpponent(game)!.hand.length > 0}
 						{#each getOpponent(game)!.hand as card (card.rank + card.suit)}
-							<div class="playing-card" class:red={isRed(card.suit)} in:fly={{ y: -50, duration: 400 }}>
+							<div class="playing-card" class:red={isRed(card.suit)} transition:fly|local={{ y: -50, duration: 400 }}>
 								<span class="card-rank">{card.rank}</span>
 								<span class="card-suit">{getSuitSymbol(card.suit)}</span>
 							</div>
@@ -391,7 +395,11 @@
 		z-index: 2;
 	}
 	.opponent-zone { margin-bottom: 20px; }
-	.my-zone { margin-top: auto; flex-direction: column-reverse; }
+	.my-zone { 
+		margin-top: auto; 
+		flex-direction: column-reverse; 
+		padding-bottom: 80px; /* Space for actions bar */
+	}
 
 	.player-info {
 		background: rgba(0,0,0,0.6);
@@ -410,7 +418,9 @@
 	.playing-card {
 		width: 56px;
 		height: 80px;
-		background: white;
+		background: rgba(255,255,255,0.05); /* Very slight tint for glass */
+		border: 2px solid rgba(255,255,255,0.4);
+		backdrop-filter: blur(4px);
 		border-radius: 6px;
 		box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 		display: flex;
@@ -421,7 +431,14 @@
 		font-family: 'Geist Mono', monospace;
 		font-weight: 700;
 	}
-	.playing-card.red { color: #d93025; }
+	.playing-card .card-rank, .playing-card .card-suit, .playing-card .card-top, .playing-card .card-center {
+		color: white; /* Default white text */
+		filter: drop-shadow(0 0 2px rgba(0,0,0,0.8)); /* Readability */
+	}
+	.playing-card.red .card-rank, .playing-card.red .card-suit, .playing-card.red .card-top, .playing-card.red .card-center { 
+		color: #ff5555; /* Bright Red */
+	}
+	
 	.card-back {
 		background: #b22222;
 		border: 2px solid white;
@@ -431,20 +448,21 @@
 	.my-card {
 		width: 70px;
 		height: 100px;
-		border: 1px solid #ddd;
+		border: 2px solid rgba(255,255,255,0.6);
 	}
 	.my-card .card-top { position: absolute; top: 4px; left: 4px; font-size: 0.9rem; line-height: 1; }
 	.my-card .card-center { font-size: 2rem; }
 
 	.table-center {
 		position: absolute;
-		top: 50%; left: 50%;
+		top: 45%; left: 50%; /* Shifted up slightly */
 		transform: translate(-50%, -50%);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: 16px;
 		width: 100%;
+		z-index: 1;
 	}
 	
 	.community-cards { display: flex; gap: 8px; }
@@ -452,25 +470,32 @@
 	.playing-card.empty { background: rgba(0,0,0,0.2); box-shadow: none; border: 2px dashed rgba(255,255,255,0.1); }
 
 	.pot-display {
-		background: rgba(0,0,0,0.4);
+		background: rgba(0,0,0,0.6);
 		padding: 8px 24px;
 		border-radius: 30px;
-		border: 1px solid rgba(255,215,0,0.3);
+		border: 1px solid rgba(255,215,0,0.5);
 		text-align: center;
 	}
-	.pot-label { display: block; font-size: 0.6rem; color: #aaa; letter-spacing: 2px; }
-	.pot-value { font-size: 1.4rem; color: #ffd700; font-weight: 800; }
+	.pot-label { display: block; font-size: 0.6rem; color: #ccc; letter-spacing: 2px; }
+	.pot-value { font-size: 1.4rem; color: #ffd700; font-weight: 800; text-shadow: 0 0 10px rgba(255,215,0,0.3); }
 
 	.actions-bar {
+		position: absolute;
+		bottom: 20px;
+		left: 50%;
+		transform: translateX(-50%);
 		display: flex;
 		flex-wrap: wrap;
 		gap: 8px;
 		justify-content: center;
-		padding: 20px;
-		background: rgba(0,0,0,0.8);
+		padding: 16px;
+		background: rgba(0,0,0,0.9);
 		border-radius: 16px;
 		backdrop-filter: blur(10px);
-		margin-top: 10px;
+		z-index: 10;
+		border: 1px solid rgba(255,255,255,0.1);
+		width: 90%;
+		max-width: 400px;
 	}
 	
 	.bet-group {

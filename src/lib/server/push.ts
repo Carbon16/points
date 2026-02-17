@@ -1,17 +1,14 @@
 import webPush from 'web-push';
 import { getDb } from './db';
+import { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT } from './vapid';
 
-// Generate VAPID keys if not set
-const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY || '';
-const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || '';
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:points@example.com';
-
-if (VAPID_PUBLIC && VAPID_PRIVATE) {
-	webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+// Configure WebPush
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+	webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 }
 
 export function getVapidPublicKey(): string {
-	return VAPID_PUBLIC;
+	return VAPID_PUBLIC_KEY;
 }
 
 export function saveSubscription(userId: string, subscription: webPush.PushSubscription): void {
@@ -32,7 +29,7 @@ export function removeSubscription(userId: string, endpoint: string): void {
 }
 
 export async function sendNotification(userId: string, payload: { title: string; body: string; url?: string }): Promise<void> {
-	if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+	if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
 
 	const db = getDb();
 	const rows = db.prepare('SELECT subscription FROM push_subscriptions WHERE user_id = ?').all(userId) as { subscription: string }[];

@@ -246,62 +246,32 @@ export function performAction(game: GameState, playerId: string, action: PlayerA
 		// If acting player is Non-Dealer, and bets match -> Switch Turn.
 		// Pre-flop: BB is last.
 		
-		// Let's apply the Dealer logic for `check` / `call`.
-		const isPostFlop = game.round > 0;
-		const actingPlayerIsDealer = player.isDealer;
+		// Check if we should advance the round
 		const isPreFlop = game.round === 0;
-		// Pre-flop: Dealer acts first (heads up). Non-Dealer (BB) acts last.
-		// So if Non-Dealer acts and bets match -> Advance.
+		// Heads-up:
+		// Pre-flop: Dealer is SB (acts first), Opponent is BB (acts last).
+		// Post-flop: Opponent (BB) acts first, Dealer acts last.
 		
-		const lastToAct = isPreFlop ? !player.isDealer : player.isDealer;
-		// Wait, heads up rules:
-		// Pre-flop: Button (Dealer) is SB. Other is BB.
-		// Dealer posts SB. BB posts BB.
-		// Dealer (SB) acts first.
-		// BB acts last.
-		// Post-flop: BB acts first. Dealer acts last.
-		
-		// So:
-		// If isPreFlop: Last to act is Non-Dealer (BB).
-		// If PostFlop: Last to act is Dealer.
-		
-		// If `player` == `lastToAct` AND bets match -> Advance.
-		
-		const isLastToAct = isPreFlop ? !player.isDealer : player.isDealer;
-		
-		if (action === 'all-in' || action === 'call' || action === 'check') {
-             if (player.currentBet === opponent.currentBet && isLastToAct) {
-                 advanceRound(game);
-                 return game;
-             }
-             // Special case: All-In Call might end round even if not last?
-             // No, if I call all-in, round ends.
-             // If I am first to act and I call all-in?
-             // P1 (Dealer) All-In. P2 (BB) Call.
-             // P2 is last to act. Advance. Correct.
-             
-             // P2 (BB) All-In. P1 (Dealer) Call.
-             // P1 is NOT last to act pre-flop?
-             // Wait. P1 (Dealer) acts first. P1 All-in. P2 Calls. P2 ends.
-             // P2 (BB) acts last.
-             
-             // What if P1 Check? (Post flop).
-             // Post flop: BB acts first. Dealer acts last.
-             // BB (P2) Checks. `isLastToAct` (Dealer) is false.
-             // Does not advance. Switches turn. Correct.
-             // Dealer (P1) Checks. `isLastToAct` is true.
-             // Advances. Correct.
-             
-             // So adding `&& isLastToAct` to the condition fixes the `check` bug.
-             
-             // AND checking for All-In match:
-             if ((player.chips === 0 || opponent.chips === 0) && player.currentBet === opponent.currentBet) {
-                 advanceRound(game);
-                 return game;
-             }
-             // If someone is all-in, we advance if bets match, regardless of position?
-             // Because no more betting possible.
-        }
+		const isDealer = player.isDealer;
+		const isLastToAct = isPreFlop ? !isDealer : isDealer;
+
+		if (player.currentBet === opponent.currentBet) {
+			if (isLastToAct) {
+				advanceRound(game);
+				return game;
+			}
+			// Special case: All-In matches always advance? 
+			// No, standard rules apply. If P1 All-in, P2 Call. P2 is last to act?
+			// If P1 (Dealer) All-In. P2 (BB) Call. P2 is last to act. Advance.
+			// If P2 (BB) All-In. P1 (Dealer) Call. P1 is NOT last to act pre-flop.
+			// But since P2 is all-in, betting is closed? 
+			// Unless P1 has chips? No, P1 called. Bets match.
+			// If bets match and someone is all-in, no further betting is possible (unless side pot, but this is heads up).
+			if (player.chips === 0 || opponent.chips === 0) {
+				advanceRound(game);
+				return game;
+			}
+		}
 	}
 
 	game.currentPlayerIndex = 1 - game.currentPlayerIndex;
@@ -398,8 +368,24 @@ export function startNextHand(game: GameState): GameState {
 	game.round = 0;
 	game.phase = 'betting';
 	game.winner = undefined;
-	game.currentPlayerIndex = game.players[0].isDealer ? 0 : 1; // dealer acts first pre-flop in heads-up
-	game.handNumber++;
+	// Determine dealer (already swapped)
+	const sbPlayerIndex = game.players[0].isDealer ? 0 : 1; // Dealer is SB in heads-up
+	const bbPlayerIndex = 1 - sbPlayerIndex;
+
+	const sbPlayer = game.players[sbPlayerIndex];
+	const bbPlayer = game.players[bbPlayerIndex];
+
+	// Post Blinds
+	const sbAmount = Math.min(5, sbPlayer.chips);
+	sbPlayer.chips -= sbAmount;
+	sbPlayer.currentBet = sbAmount;
+	
+	const bbAmount = Math.min(10, bbPlayer.chips);
+	bbPlayer.chips -= bbAmount;
+	bbPlayer.currentBet = bbAmount;
+
+	game.pot = sbAmount + bbAmount;
+	game.currentPlayerIndex = sbPlayerIndex; // Dealer (SB) acts first pre-flop
 
 	return game;
 }
