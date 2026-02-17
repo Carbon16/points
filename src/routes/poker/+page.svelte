@@ -377,37 +377,21 @@
 					{/if}
 					
 					<div class="bet-group">
-						<div class="slider-wrapper">
-							<div class="slider-bubble" class:visible={isDragging} style="left: {thumbPosition}%">
-								<span class="bubble-value">{betAmount}</span>
-								<div class="bubble-tail"></div>
-							</div>
-							
-							<div class="custom-slider">
-								<div class="slider-track"></div>
-								<div class="slider-fill" style="width: {thumbPosition}%"></div>
-								<input 
-									type="range" 
-									min={minBet} 
-									max={maxBet} 
-									step="5" 
-									bind:value={betAmount}
-									onmousedown={() => isDragging = true}
-									onmouseup={() => isDragging = false}
-									ontouchstart={() => isDragging = true}
-									ontouchend={() => isDragging = false}
-								/>
-							</div>
-							
-							<div class="slider-meta">
-								<span class="min-label">{minBet}</span>
-								<span class="max-label">{maxBet}</span>
-							</div>
-						</div>
-
 						<button class="btn btn-primary bet-btn" onclick={() => doAction('bet', betAmount)}>
 							Bet {betAmount}
 						</button>
+						<input 
+							type="range" 
+							min={minBet} 
+							max={maxBet} 
+							step="5" 
+							bind:value={betAmount}
+							class="big-slider"
+						/>
+						<div class="slider-labels">
+							<span>Min: {minBet}</span>
+							<span>Max: {maxBet}</span>
+						</div>
 					</div>
 
 					<button class="btn btn-danger ghost" onclick={() => doAction('fold')}>Fold</button>
@@ -638,104 +622,48 @@
 	.bet-group {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: 12px;
 		width: 100%;
-		padding: 4px;
-	}
-
-	.slider-wrapper {
-		position: relative;
-		padding: 24px 0 12px;
-		width: 100%;
-	}
-
-	.slider-bubble {
-		position: absolute;
-		top: -12px;
-		transform: translateX(-50%) scale(0.8);
-		background: var(--accent);
-		color: white;
-		padding: 6px 12px;
+		padding: 12px;
+		background: rgba(255,255,255,0.03);
 		border-radius: 12px;
-		font-weight: 800;
-		font-size: 0.9rem;
-		pointer-events: none;
-		opacity: 0;
-		transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s;
-		box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
-		z-index: 5;
-	}
-	.slider-bubble.visible {
-		opacity: 1;
-		transform: translateX(-50%) scale(1);
-	}
-	.bubble-tail {
-		position: absolute;
-		bottom: -4px;
-		left: 50%;
-		transform: translateX(-50%);
-		width: 0; height: 0;
-		border-left: 6px solid transparent;
-		border-right: 6px solid transparent;
-		border-top: 6px solid var(--accent);
 	}
 
-	.custom-slider {
-		position: relative;
-		height: 12px;
-		display: flex;
-		align-items: center;
-	}
-	.slider-track {
-		position: absolute;
-		width: 100%;
-		height: 8px;
-		background: rgba(255, 255, 255, 0.08);
-		border-radius: 4px;
-		border: 1px solid rgba(255,255,255,0.05);
-	}
-	.slider-fill {
-		position: absolute;
-		height: 8px;
-		background: linear-gradient(90deg, var(--accent), var(--accent-light));
-		border-radius: 4px;
-		box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
-	}
-
-	.custom-slider input[type="range"] {
+	.big-slider {
 		-webkit-appearance: none;
 		appearance: none;
 		width: 100%;
-		background: transparent;
-		position: relative;
-		z-index: 2;
-		cursor: pointer;
-		margin: 0;
+		height: 12px;
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 6px;
+		outline: none;
+		margin: 10px 0;
 	}
 
-	.custom-slider input[type="range"]::-webkit-slider-thumb {
+	.big-slider::-webkit-slider-thumb {
 		-webkit-appearance: none;
-		height: 24px;
-		width: 24px;
+		appearance: none;
+		width: 28px;
+		height: 28px;
+		background: var(--accent);
+		cursor: pointer;
 		border-radius: 50%;
-		background: white;
-		border: 4px solid var(--accent);
-		box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+		border: 4px solid white;
+		box-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
 		transition: transform 0.1s;
 	}
-	.custom-slider input[type="range"]:active::-webkit-slider-thumb {
+
+	.big-slider::-webkit-slider-thumb:active {
 		transform: scale(1.2);
-		box-shadow: 0 0 15px var(--accent);
 	}
 
-	.slider-meta {
+	.slider-labels {
 		display: flex;
 		justify-content: space-between;
-		margin-top: 8px;
-		font-family: var(--font-mono);
 		font-size: 0.7rem;
 		color: var(--text-muted);
-		font-weight: 600;
+		font-family: var(--font-mono);
+		font-weight: 700;
 	}
 
 	.bet-btn {
@@ -743,7 +671,8 @@
 		font-weight: 800;
 		letter-spacing: 0.05em;
 		text-transform: uppercase;
-		height: 44px;
+		height: 48px;
+		font-size: 1rem;
 	}
 
 	.showdown-bar {
