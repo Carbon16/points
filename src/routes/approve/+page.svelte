@@ -1,0 +1,288 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { auth, getAuthHeaders } from '$lib/stores/auth';
+	import { goto } from '$app/navigation';
+	import { GetPrivateKey, signData } from '$lib/crypto';
+
+	interface PointReq {
+		id: string;
+		requested_by: string;
+		award_to: string;
+		description: string;
+		status: string;
+		approved_by: string[];
+		created_at: number;
+		signatures?: Record<string, string>;
+	}
+
+	let pending = $state<PointReq[]>([]);
+	let loading = $state(true);
+	let showForm = $state(false);
+	let awardTo = $state('player1');
+	let description = $state('');
+	let submitting = $state(false);
+	let message = $state('');
+
+	onMount(async () => {
+		if (!$auth.token) { goto('/login'); return; }
+		await loadPending();
+	});
+
+	async function loadPending() {
+		loading = true;
+		try {
+			const res = await fetch('/api/points/pending', { headers: getAuthHeaders($auth.token!) });
+			const data = await res.json();
+			if (data.success) pending = data.data;
+		} catch {/* */}
+		loading = false;
+	}
+
+	async function submitRequest() {
+		submitting = true;
+		message = '';
+		try {
+			const pk = await GetPrivateKey();
+			if (!pk) throw new Error('No private key found');
+
+			const timestamp = Date.now();
+			const payload = `manual_point:${awardTo}:${description || 'Manual point'}:${timestamp}`;
+			const signature = await signData(pk, payload);
+
+			const res = await fetch('/api/points', {
+				method: 'POST',
+				headers: { ...getAuthHeaders($auth.token!), 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					type: 'manual_point',
+					winnerId: awardTo,
+					description: description || 'Manual point',
+					timestamp,
+					signature
+				})
+			});
+			const data = await res.json();
+			if (data.success) {
+				message = 'Request sent! Waiting for approval.';
+				description = '';
+				showForm = false;
+				await loadPending();
+			} else {
+				message = data.error;
+			}
+		} catch (e) {
+			console.error(e);
+			message = 'Failed to submit (Crypto error?)';
+		}
+		submitting = false;
+	}
+
+	async function handleApproval(req: PointReq, action: 'approve' | 'reject') {
+		try {
+			let signature: string | undefined;
+			if (action === 'approve') {
+				const pk = await GetPrivateKey();
+				if (pk) {
+					// Reconstruct payload to sign
+					const payload = `manual_point:${req.award_to}:${req.description}:${req.created_at}`;
+					signature = await signData(pk, payload);
+				}
+			}
+
+			const res = await fetch('/api/points/pending', {
+				method: 'POST',
+				headers: { ...getAuthHeaders($auth.token!), 'Content-Type': 'application/json' },
+				body: JSON.stringify({ requestId: req.id, action, signature })
+			});
+			const data = await res.json();
+			if (data.success) {
+				if (data.data?.mined) {
+					message = 'Point approved and recorded on blockchain!';
+				} else if (data.data?.status === 'rejected') {
+					message = 'Request rejected';
+				}
+				await loadPending();
+			}
+		} catch {/* */}
+	}
+
+	function getName(id: string) {
+		return id === 'player1' ? 'Player 1' : 'Player 2';
+	}
+
+	function formatTime(ts: number) {
+		return new Date(ts).toLocaleDateString('en-GB', {
+			day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+		});
+	}
+</script>
+
+<div class="approve-page animate-in">
+	<div class="page-header">
+		<h1><ion-icon name="checkmark-done-circle-outline"></ion-icon> Approvals</h1>
+		<button class="btn btn-primary" onclick={() => showForm = !showForm}>
+			{showForm ? 'Cancel' : '+ Add Point'}
+		</button>
+	</div>
+
+	{#if message}
+		<div class="card message-card">{message}</div>
+	{/if}
+
+	{#if showForm}
+		<div class="card form-card">
+			<h3>Request a Point</h3>
+			<div class="form-group">
+				<label>Award to:</label>
+				<div class="select-row">
+					<button class="user-btn" class:selected={awardTo === 'player1'} onclick={() => awardTo = 'player1'}>
+						Player 1
+					</button>
+					<button class="user-btn" class:selected={awardTo === 'player2'} onclick={() => awardTo = 'player2'}>
+						Player 2
+					</button>
+				</div>
+			</div>
+			<div class="form-group">
+				<label>Reason:</label>
+				<input type="text" bind:value={description} placeholder="e.g. Won at cards IRL" />
+			</div>
+			<button class="btn btn-success" onclick={submitRequest} disabled={submitting}>
+				{submitting ? 'Submitting...' : 'Submit Request'}
+			</button>
+		</div>
+	{/if}
+
+	<section class="pending-section">
+		<h2>Pending Requests</h2>
+		{#if loading}
+			<p class="empty loading">Loading...</p>
+		{:else if pending.length === 0}
+			<p class="empty">No pending requests</p>
+		{:else}
+			{#each pending as req}
+				<div class="card request-card">
+					<div class="req-info">
+						<span class="req-title">
+							Award point to <strong>{getName(req.award_to)}</strong>
+						</span>
+						<span class="req-desc">{req.description}</span>
+						<span class="req-meta">
+							Requested by {getName(req.requested_by)} · {formatTime(req.created_at)}
+						</span>
+						<span class="req-approvals">
+							Approved by: {req.approved_by.map(getName).join(', ') || 'None'}
+						</span>
+					</div>
+					{#if !req.approved_by.includes($auth.userId || '')}
+						<div class="req-actions">
+							<button class="btn btn-success" onclick={() => handleApproval(req, 'approve')}>
+								Approve
+							</button>
+							<button class="btn btn-danger" onclick={() => handleApproval(req, 'reject')}>
+								Reject
+							</button>
+						</div>
+					{:else}
+						<span class="badge badge-warning">Awaiting other player</span>
+					{/if}
+				</div>
+			{/each}
+		{/if}
+	</section>
+</div>
+
+<style>
+	.approve-page {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+	.page-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+	h1 { font-size: 1.3rem; font-weight: 800; }
+	h2 {
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: var(--text-secondary);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		margin-bottom: 10px;
+	}
+
+	.message-card {
+		background: rgba(124, 58, 237, 0.1);
+		border-color: var(--accent);
+		text-align: center;
+		font-size: 0.85rem;
+		padding: 14px;
+	}
+
+	.form-card {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+	}
+	.form-card h3 {
+		font-size: 1rem;
+		color: var(--text-secondary);
+	}
+
+	.form-group {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.form-group label {
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--text-muted);
+	}
+	.form-group input { width: 100%; }
+
+	.select-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 8px;
+	}
+	.user-btn {
+		padding: 10px;
+		background: var(--bg-secondary);
+		border: 2px solid transparent;
+		border-radius: var(--radius-sm);
+		color: var(--text-secondary);
+		font-size: 0.85rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all var(--transition);
+	}
+	.user-btn.selected {
+		border-color: var(--accent);
+		background: rgba(124, 58, 237, 0.1);
+		color: var(--text-primary);
+	}
+
+	.request-card {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding: 16px;
+	}
+	.req-info { display: flex; flex-direction: column; gap: 4px; }
+	.req-title { font-size: 0.9rem; }
+	.req-desc { font-size: 0.8rem; color: var(--text-secondary); }
+	.req-meta { font-size: 0.72rem; color: var(--text-muted); }
+	.req-approvals { font-size: 0.72rem; color: var(--accent-light); }
+
+	.req-actions { display: flex; gap: 8px; }
+	.req-actions .btn { flex: 1; font-size: 0.8rem; padding: 8px; }
+
+	.empty {
+		text-align: center;
+		color: var(--text-muted);
+		font-size: 0.85rem;
+		padding: 24px;
+	}
+</style>

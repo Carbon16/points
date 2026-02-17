@@ -1,0 +1,36 @@
+[Unit]
+Description=Points PWA - SvelteKit Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+# Adjust path to where you clone the repo
+WorkingDirectory=/root/points
+Environment="NODE_ENV=production"
+Environment="PORT=4000"
+Environment="Origin=https://your-domain.com"
+# You might need to add other env vars here (e.g. JWT_SECRET if not using default)
+
+# Command to start the server (after 'npm run build')
+ExecStart=/usr/bin/node build/index.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=points-pwa
+
+# Allow binding to privileged ports (if needed, though 4000 is unprivileged)
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# Allow write access to data directory for SQLite
+ReadWritePaths=/root/points/data
+
+[Install]
+WantedBy=multi-user.target
