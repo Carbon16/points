@@ -15,12 +15,13 @@
 	const thumbPosition = $derived(((betAmount - minBet) / (maxBet - minBet)) * 100);
 	
 	let gameOverInfo = $state<{ winner?: string; loser?: string } | null>(null);
+	let pendingAction = $state<{ type: string; data?: any } | null>(null);
 	let pollInterval: ReturnType<typeof setInterval>;
 
 	onMount(async () => {
 		if (!$auth.token) { goto('/login'); return; }
 		await loadGame();
-		pollInterval = setInterval(loadGame, 3000);
+		pollInterval = setInterval(loadGame, 1000);
 	});
 
 	onDestroy(() => {
@@ -55,6 +56,7 @@
 				if (!dataRes.success) { error = dataRes.error; return; }
 				if (dataRes.data?.game) game = dataRes.data.game;
 				else game = dataRes.data;
+				loadGame(); // Refresh immediately after creation
 			} catch {
 				error = 'Connection failed';
 			}
@@ -117,9 +119,29 @@
 			} else {
 				game = dataRes.data;
 			}
+			loadGame(); // Refresh state immediately after action
 		} catch {
 			error = 'Connection failed';
 		}
+	}
+
+	function handleAction(action: string, data?: any) {
+		if (action === 'fold' || action === 'all-in') {
+			pendingAction = { type: action, data };
+			return;
+		}
+		doAction(action, data);
+	}
+
+	function confirmPendingAction() {
+		if (pendingAction) {
+			doAction(pendingAction.type, pendingAction.data);
+			pendingAction = null;
+		}
+	}
+
+	function cancelPendingAction() {
+		pendingAction = null;
 	}
 
 	async function saveHandHistory(finalGame: GameState, winnerId: string) {
@@ -400,8 +422,8 @@
 					</div>
 
 					<div class="secondary-actions">
-						<button class="btn btn-danger ghost sm" onclick={() => doAction('fold')}>Fold</button>
-						<button class="btn btn-warning ghost sm" onclick={() => doAction('all-in')}>ALL IN</button>
+						<button class="btn btn-danger ghost sm" onclick={() => handleAction('fold')}>Fold</button>
+						<button class="btn btn-warning ghost sm" onclick={() => handleAction('all-in')}>ALL IN</button>
 					</div>
 				</div>
 			{:else if game.phase === 'betting'}
@@ -426,6 +448,19 @@
 					<button class="btn btn-primary" in:fly={{ y: 20, delay: 800 }} onclick={() => doAction('next-hand')}>
 						Next Hand →
 					</button>
+				</div>
+			{/if}
+
+			{#if pendingAction}
+				<div class="confirmation-overlay" in:fade>
+					<div class="confirmation-dialog card card-glow" in:scale>
+						<h3>Confirm {pendingAction.type === 'fold' ? 'Fold' : 'ALL IN'}?</h3>
+						<p>Are you sure you want to {pendingAction.type}?</p>
+						<div class="confirm-actions">
+							<button class="btn btn-primary" onclick={confirmPendingAction}>Yes, {pendingAction.type}</button>
+							<button class="btn btn-ghost" onclick={cancelPendingAction}>Go Back</button>
+						</div>
+					</div>
 				</div>
 			{/if}
 			
@@ -776,6 +811,46 @@
 		border-radius: 30px;
 		box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 		font-weight: 600;
+	}
+
+	.confirmation-overlay {
+		position: absolute;
+		top: 0; left: 0; right: 0; bottom: 0;
+		background: rgba(0,0,0,0.8);
+		backdrop-filter: blur(8px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 200;
+	}
+
+	.confirmation-dialog {
+		padding: 24px;
+		text-align: center;
+		width: 90%;
+		max-width: 300px;
+	}
+
+	.confirmation-dialog h3 {
+		margin: 0 0 8px;
+		color: #fff;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+	}
+
+	.confirmation-dialog p {
+		color: var(--text-muted);
+		margin-bottom: 24px;
+	}
+
+	.confirm-actions {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.confirm-actions .btn-primary {
+		background: #ef4444; /* Force red for fold confirm */
 	}
 
 	.spinner {
