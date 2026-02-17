@@ -32,19 +32,11 @@
 		verifying = true;
 		verification = null;
 		
-		// Fetch users to get public keys
+		// Use the already fetched users for verification mapping
 		let usersMap: Record<string, string> = {};
-		try {
-			const res = await fetch('/api/auth', { headers: getAuthHeaders($auth.token!) });
-			const data = await res.json();
-			if (data.success) {
-				data.data.forEach((u: any) => {
-					if (u.publicKey) usersMap[u.id] = u.publicKey;
-				});
-			}
-		} catch (e) {
-			console.error('Failed to fetch users for verification', e);
-		}
+		users.forEach((u: any) => {
+			if (u.publicKey) usersMap[u.id] = u.publicKey;
+		});
 
 		// Simulate a brief verification process for effect
 		await new Promise(r => setTimeout(r, 800));

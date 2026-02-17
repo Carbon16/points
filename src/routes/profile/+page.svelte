@@ -112,12 +112,12 @@
 
 	<div class="card identity-card">
 		<div class="user-info">
-			<h2>{$auth.userId}</h2>
+			<h2>{$auth.name || $auth.userId}</h2>
 			<span class="badge badge-accent">Authenticated</span>
 		</div>
 
 		<div class="fingerprint-section">
-			<label>Public Key Fingerprint (SHA-256)</label>
+			<span class="label-text">Public Key Fingerprint (SHA-256)</span>
 			<code class="fingerprint">{fingerprint}</code>
 			<p class="help-text">Verify this matches what other players see.</p>
 		</div>
@@ -193,7 +193,7 @@
 		flex-direction: column;
 		gap: 6px;
 	}
-	.fingerprint-section label {
+	.fingerprint-section .label-text {
 		font-size: 0.75rem;
 		text-transform: uppercase;
 		color: var(--text-muted);

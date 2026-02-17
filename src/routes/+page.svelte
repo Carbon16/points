@@ -57,7 +57,10 @@
 
 <div class="dashboard animate-in">
 	<header class="dash-header">
-		<h1>Points</h1>
+		<div class="header-title">
+			<h1>Points</h1>
+			<span class="user-greeting">Hello, {$auth.name || 'Player'}</span>
+		</div>
 		<button class="btn btn-ghost btn-sm" onclick={() => { auth.logout(); goto('/login'); }} aria-label="Logout">
 			<ion-icon name="log-out-outline"></ion-icon>
 		</button>
@@ -146,6 +149,18 @@
 		-webkit-background-clip: text;
 		-webkit-text-fill-color: transparent;
 		background-clip: text;
+		line-height: 1;
+	}
+	.header-title {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.user-greeting {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--text-muted);
+		letter-spacing: 0.02em;
 	}
 	.btn-sm { padding: 6px 14px; font-size: 0.8rem; }
 
