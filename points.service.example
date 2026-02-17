@@ -11,6 +11,7 @@ WorkingDirectory=/root/points
 Environment="NODE_ENV=production"
 Environment="PORT=4000"
 Environment="Origin=https://your-domain.com"
+Environment="DATABASE_PATH=/var/www/points/data/points.db"
 # You might need to add other env vars here (e.g. JWT_SECRET if not using default)
 
 # Command to start the server (after 'npm run build')
