@@ -30,7 +30,8 @@ export function getDb(): Database.Database {
 				id TEXT PRIMARY KEY,
 				name TEXT NOT NULL,
 				pin_hash TEXT NOT NULL,
-				public_key TEXT
+				public_key TEXT,
+				encrypted_private_key TEXT
 			);
 
 			CREATE TABLE IF NOT EXISTS point_requests (
@@ -73,6 +74,10 @@ export function getDb(): Database.Database {
 		// Migration: add public_key if missing
 		try {
 			db.prepare('ALTER TABLE users ADD COLUMN public_key TEXT').run();
+		} catch (e) { /* ignore */ }
+
+		try {
+			db.prepare('ALTER TABLE users ADD COLUMN encrypted_private_key TEXT').run();
 		} catch (e) { /* ignore */ }
 
 		// Migration: add signatures if missing

@@ -132,8 +132,84 @@ export async function importKeyPair(jwkStr: string): Promise<CryptoKeyPair> {
 	return { privateKey, publicKey };
 }
 
-// Simple IDB wrapper
+// PIN-based identity backup
+const PBKDF2_ITERATIONS = 100000;
 
+async function deriveKeyFromPin(pin: string, salt: Uint8Array): Promise<CryptoKey> {
+	const encoder = new TextEncoder();
+	const baseKey = await window.crypto.subtle.importKey(
+		'raw',
+		encoder.encode(pin),
+		'PBKDF2',
+		false,
+		['deriveKey']
+	);
+
+	return window.crypto.subtle.deriveKey(
+		{
+			name: 'PBKDF2',
+			salt: salt as any,
+			iterations: PBKDF2_ITERATIONS,
+			hash: 'SHA-256'
+		},
+		baseKey,
+		{ name: 'AES-GCM', length: 256 },
+		false,
+		['encrypt', 'decrypt']
+	);
+}
+
+export async function backupPrivateKey(privateKey: CryptoKey, pin: string): Promise<string> {
+	const salt = window.crypto.getRandomValues(new Uint8Array(16));
+	const iv = window.crypto.getRandomValues(new Uint8Array(12));
+	const derivedKey = await deriveKeyFromPin(pin, salt);
+	
+	const jwk = await window.crypto.subtle.exportKey('jwk', privateKey);
+	const data = new TextEncoder().encode(JSON.stringify(jwk));
+	
+	const encrypted = await window.crypto.subtle.encrypt(
+		{ name: 'AES-GCM', iv },
+		derivedKey,
+		data
+	);
+
+	// Pack: salt(16) + iv(12) + encrypted
+	const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+	combined.set(salt, 0);
+	combined.set(iv, salt.length);
+	combined.set(new Uint8Array(encrypted), salt.length + iv.length);
+	
+	return btoa(String.fromCharCode(...combined));
+}
+
+export async function recoverPrivateKey(encryptedBase64: string, pin: string): Promise<CryptoKey> {
+	const combined = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
+	
+	const salt = combined.slice(0, 16);
+	const iv = combined.slice(16, 28);
+	const data = combined.slice(28);
+	
+	const derivedKey = await deriveKeyFromPin(pin, salt);
+	
+	const decrypted = await window.crypto.subtle.decrypt(
+		{ name: 'AES-GCM', iv },
+		derivedKey,
+		data
+	);
+	
+	const jwkStr = new TextDecoder().decode(decrypted);
+	const jwk = JSON.parse(jwkStr);
+	
+	return window.crypto.subtle.importKey(
+		'jwk',
+		jwk,
+		{ name: 'ECDSA', namedCurve: 'P-256' },
+		true,
+		['sign']
+	);
+}
+
+// Simple IDB wrapper
 function openDb(): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
 		const req = indexedDB.open('PointsCrypto', 1);

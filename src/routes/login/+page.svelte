@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { auth } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
-	import { generateKeyPair, exportPublicKey, StoreKeys, GetPublicKey, importKeyPair } from '$lib/crypto';
+	import { generateKeyPair, exportPublicKey, StoreKeys, GetPublicKey, importKeyPair, backupPrivateKey, recoverPrivateKey } from '$lib/crypto';
 	import { initPush } from '$lib/push-client';
 
 	let selectedUser = $state('');
@@ -21,7 +21,7 @@
 	const steps = [
 		'Initializing Enclave Node...',
 		'Generating P-256 ECDSA Key Pair...',
-		'Encrypting Local Storage...',
+		'Encrypting Secure Backup...',
 		'Configuring Push Notifications...',
 		'Registering Signature...'
 	];
@@ -64,17 +64,52 @@
 		loading = true;
 
 		try {
-			// Crypto setup
+			// 1. Initial login attempt to check if user exists and get backup if available
+			const initialRes = await fetch('/api/auth', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ userId: selectedUser, pin })
+			});
+			const initialData = await initialRes.json();
+
+			if (!initialData.success) {
+				error = initialData.error || 'Login failed';
+				loading = false;
+				return;
+			}
+
 			let publicKeyStr: string | undefined;
+			let encryptedPrivateKey: string | undefined;
+
 			try {
 				const existingKey = await GetPublicKey();
+				
 				if (existingKey) {
-					console.log('Found existing key');
+					console.log('Found existing local key');
 					publicKeyStr = await exportPublicKey(existingKey);
-					if (wantNotifications) await enableNotifications();
-
+				} else if (initialData.data.encryptedPrivateKey) {
+					// 2. RECOVERY FLOW: Restore from server backup
+					console.log('Restoring from server backup...');
+					creatingIdentity = true;
+					identityStep = 2; // "Encrypting Secure Backup..." (reusing labels)
+					
+					const privateKey = await recoverPrivateKey(initialData.data.encryptedPrivateKey, pin);
+					const publicKey = await GetPublicKey(); // Wait, recoverPrivateKey doesn't store it
+					// recoverPrivateKey returns privateKey, we need to store the pair
+					// Let's modify recoverPrivateKey to return the pair or handle it here
+					// Actually, recoverPrivateKey in my implementation returns just privateKey.
+					// I need to derive public key or store it differently.
+					
+					// Re-import the key as a pair
+					const jwk = await window.crypto.subtle.exportKey('jwk', privateKey);
+					const pair = await importKeyPair(JSON.stringify(jwk));
+					await StoreKeys(pair);
+					publicKeyStr = await exportPublicKey(pair.publicKey);
+					
+					await wait(1000);
+					creatingIdentity = false;
 				} else {
-					// Secure Onboarding Flow
+					// 3. NEW ONBOARDING FLOW
 					creatingIdentity = true;
 					identityStep = 0;
 					await wait(800);
@@ -83,45 +118,50 @@
 					const pair = await generateKeyPair();
 					await wait(1200);
 
-					identityStep = 2;
+					identityStep = 2; // Encrypting Secure Backup
+					encryptedPrivateKey = await backupPrivateKey(pair.privateKey, pin);
 					await StoreKeys(pair);
 					publicKeyStr = await exportPublicKey(pair.publicKey);
 					await wait(1000);
 
 					identityStep = 3;
-                    // We only run this if the user checked the box, OR you can force it here
-                    if (wantNotifications) {
-                        await enableNotifications();
-                    }
-                    await wait(800);
+					if (wantNotifications) await enableNotifications();
+					await wait(800);
 
 					identityStep = 4; 
-                    await wait(800);
+					await wait(800);
 				}
+
+				// 4. Final login/registration with public key and backup if newly created
+				const res = await fetch('/api/auth', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ 
+						userId: selectedUser, 
+						pin, 
+						publicKey: publicKeyStr,
+						encryptedPrivateKey: encryptedPrivateKey 
+					})
+				});
+				const data = await res.json();
+				
+				if (!data.success) { 
+					error = data.error || 'Login failed'; 
+					loading = false; 
+					creatingIdentity = false;
+					return; 
+				}
+
+				auth.login(data.data.token, data.data.userId, selectedUser === 'player1' ? 'Player 1' : 'Player 2');
+				goto('/');
+
 			} catch (e) {
 				console.error('Crypto error:', e);
 				creatingIdentity = false;
 				loading = false;
-				error = 'Crypto initialization failed';
+				error = 'Identity recovery failed. Incorrect PIN?';
 				return;
 			}
-
-			const res = await fetch('/api/auth', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ userId: selectedUser, pin, publicKey: publicKeyStr })
-			});
-			const data = await res.json();
-			
-			if (!data.success) { 
-				error = data.error || 'Login failed'; 
-				loading = false; 
-				creatingIdentity = false;
-				return; 
-			}
-
-			auth.login(data.data.token, data.data.userId, selectedUser === 'player1' ? 'Player 1' : 'Player 2');
-			goto('/');
 		} catch (e) {
 			console.error(e);
 			error = 'Connection failed';
@@ -189,6 +229,7 @@
 
 				<input
 					type="password"
+					inputmode="numeric"
 					placeholder="Enter your PIN"
 					bind:value={pin}
 					onkeydown={(e) => e.key === 'Enter' && handleLogin()}

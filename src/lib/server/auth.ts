@@ -26,7 +26,7 @@ export function getUsers(): User[] {
 	});
 }
 
-export function setupUser(userId: string, pin: string, publicKey?: string): boolean {
+export function setupUser(userId: string, pin: string, publicKey?: string, encryptedPrivateKey?: string): boolean {
 	const user = USERS.find((u) => u.id === userId);
 	if (!user) return false;
 
@@ -34,33 +34,45 @@ export function setupUser(userId: string, pin: string, publicKey?: string): bool
 	const existing = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
 	if (existing) return false; // already set up
 
-	db.prepare('INSERT INTO users (id, name, pin_hash, public_key) VALUES (?, ?, ?, ?)').run(
+	db.prepare('INSERT INTO users (id, name, pin_hash, public_key, encrypted_private_key) VALUES (?, ?, ?, ?, ?)').run(
 		userId,
 		user.name,
 		hashPin(pin),
-		publicKey || null
+		publicKey || null,
+		encryptedPrivateKey || null
 	);
 	return true;
 }
 
-export function login(userId: string, pin: string, publicKey?: string): string | null {
+export function login(userId: string, pin: string, publicKey?: string, encryptedPrivateKey?: string): { token: string; encryptedPrivateKey?: string } | null {
 	const db = getDb();
-	const row = db.prepare('SELECT pin_hash FROM users WHERE id = ?').get(userId) as
-		| { pin_hash: string }
+	const row = db.prepare('SELECT pin_hash, encrypted_private_key FROM users WHERE id = ?').get(userId) as
+		| { pin_hash: string; encrypted_private_key: string | null }
 		| undefined;
 
 	if (!row) {
 		// User not set up yet — auto-setup
 		const user = USERS.find((u) => u.id === userId);
 		if (!user) return null;
-		setupUser(userId, pin, publicKey);
-		return jwt.sign({ userId, name: user.name }, JWT_SECRET, { expiresIn: '30d' });
+		setupUser(userId, pin, publicKey, encryptedPrivateKey);
+		return { 
+			token: jwt.sign({ userId, name: user.name }, JWT_SECRET, { expiresIn: '30d' }) 
+		};
 	}
 
 	if (row.pin_hash !== hashPin(pin)) return null;
 
+	// If user exists but keys are missing, update them
+	if (publicKey || encryptedPrivateKey) {
+		db.prepare('UPDATE users SET public_key = COALESCE(public_key, ?), encrypted_private_key = COALESCE(encrypted_private_key, ?) WHERE id = ?')
+			.run(publicKey || null, encryptedPrivateKey || null, userId);
+	}
+
 	const user = USERS.find((u) => u.id === userId)!;
-	return jwt.sign({ userId, name: user.name }, JWT_SECRET, { expiresIn: '30d' });
+	return {
+		token: jwt.sign({ userId, name: user.name }, JWT_SECRET, { expiresIn: '30d' }),
+		encryptedPrivateKey: row.encrypted_private_key || encryptedPrivateKey || undefined
+	};
 }
 
 export function verifyToken(token: string): { userId: string; name: string } | null {
