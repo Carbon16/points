@@ -369,35 +369,40 @@
 			<!-- Actions -->
 			{#if game.phase === 'betting' && isMyTurn(game)}
 				<div class="actions-bar" in:fly={{ y: 20, duration: 300 }}>
-					{#if canCheck(game)}
-						<button class="btn btn-ghost" onclick={() => doAction('check')}>Check</button>
-					{/if}
-					{#if canCall(game)}
-						<button class="btn btn-primary call-btn" onclick={() => doAction('call')}>
-							Call { (getOpponent(game)?.currentBet || 0) - (getMyPlayer(game)?.currentBet || 0) }
-						</button>
-					{/if}
-					
-					<div class="bet-group">
-						<button class="btn btn-primary bet-btn" onclick={() => doAction('bet', betAmount)}>
-							Bet {betAmount}
-						</button>
-						<input 
-							type="range" 
-							min={minBet} 
-							max={maxBet} 
-							step="5" 
-							bind:value={betAmount}
-							class="big-slider"
-						/>
-						<div class="slider-labels">
-							<span>Min: {minBet}</span>
-							<span>Max: {maxBet}</span>
+					<div class="main-actions">
+						{#if canCheck(game)}
+							<button class="btn btn-primary big-check" onclick={() => doAction('check')}>Check</button>
+						{:else if canCall(game)}
+							<button class="btn btn-primary big-check" onclick={() => doAction('call')}>
+								Call { (getOpponent(game)?.currentBet || 0) - (getMyPlayer(game)?.currentBet || 0) }
+							</button>
+						{/if}
+
+						<div class="bet-section">
+							<button class="btn btn-primary bet-btn-small" onclick={() => doAction('bet', betAmount)}>
+								Bet {betAmount}
+							</button>
+							<div class="slider-container">
+								<input 
+									type="range" 
+									min={minBet} 
+									max={maxBet} 
+									step="5" 
+									bind:value={betAmount}
+									class="big-slider"
+								/>
+								<div class="slider-labels">
+									<span>{minBet}</span>
+									<span>{maxBet}</span>
+								</div>
+							</div>
 						</div>
 					</div>
 
-					<button class="btn btn-danger ghost" onclick={() => doAction('fold')}>Fold</button>
-					<button class="btn btn-warning ghost" onclick={() => doAction('all-in')}>ALL IN</button>
+					<div class="secondary-actions">
+						<button class="btn btn-danger ghost sm" onclick={() => doAction('fold')}>Fold</button>
+						<button class="btn btn-warning ghost sm" onclick={() => doAction('all-in')}>ALL IN</button>
+					</div>
 				</div>
 			{:else if game.phase === 'betting'}
 				<div class="waiting-bar" in:fade>
@@ -613,49 +618,80 @@
 		bottom: 16px;
 		margin: 0 auto;
 		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-		justify-content: center;
-		padding: 16px;
-		background: rgba(0,0,0,0.9);
-		border-radius: 16px;
-		backdrop-filter: blur(10px);
-		z-index: 10;
-		border: 1px solid rgba(255,255,255,0.1);
-		width: 90%;
-		max-width: 400px;
-	}
-	
-	.bet-group {
-		display: flex;
 		flex-direction: column;
 		gap: 12px;
-		width: 100%;
 		padding: 12px;
-		background: rgba(255,255,255,0.03);
+		background: rgba(0,0,0,0.95);
+		border-radius: 20px;
+		backdrop-filter: blur(20px);
+		z-index: 100;
+		border: 1px solid rgba(255,255,255,0.15);
+		width: 95%;
+		max-width: 500px;
+		box-shadow: 0 -10px 40px rgba(0,0,0,0.6);
+	}
+
+	.main-actions {
+		display: flex;
+		gap: 12px;
+		align-items: stretch;
+	}
+
+	.big-check {
+		flex: 1;
+		font-weight: 900;
+		font-size: 1.2rem;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		background: linear-gradient(135deg, var(--accent), var(--accent-light));
+		border: none;
+		min-height: 80px;
+		box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+	}
+
+	.bet-section {
+		flex: 2;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		background: rgba(255,255,255,0.05);
+		padding: 8px;
 		border-radius: 12px;
+	}
+
+	.bet-btn-small {
+		height: 36px;
+		font-size: 0.8rem;
+		font-weight: 700;
+		padding: 0 12px;
+	}
+
+	.slider-container {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
 	}
 
 	.big-slider {
 		-webkit-appearance: none;
 		appearance: none;
 		width: 100%;
-		height: 12px;
+		height: 8px;
 		background: rgba(255, 255, 255, 0.1);
-		border-radius: 6px;
+		border-radius: 4px;
 		outline: none;
-		margin: 10px 0;
+		margin: 8px 0;
 	}
 
 	.big-slider::-webkit-slider-thumb {
 		-webkit-appearance: none;
 		appearance: none;
-		width: 28px;
-		height: 28px;
-		background: var(--accent);
+		width: 24px;
+		height: 24px;
+		background: white;
 		cursor: pointer;
 		border-radius: 50%;
-		border: 4px solid white;
+		border: 3px solid var(--accent);
 		box-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
 		transition: transform 0.1s;
 	}
@@ -667,19 +703,22 @@
 	.slider-labels {
 		display: flex;
 		justify-content: space-between;
-		font-size: 0.7rem;
+		font-size: 0.6rem;
 		color: var(--text-muted);
 		font-family: var(--font-mono);
-		font-weight: 700;
+		opacity: 0.7;
 	}
 
-	.bet-btn {
-		width: 100%;
-		font-weight: 800;
-		letter-spacing: 0.05em;
-		text-transform: uppercase;
-		height: 48px;
-		font-size: 1rem;
+	.secondary-actions {
+		display: flex;
+		gap: 8px;
+	}
+
+	.btn.sm {
+		flex: 1;
+		height: 36px;
+		font-size: 0.75rem;
+		font-weight: 700;
 	}
 
 	.showdown-bar {
