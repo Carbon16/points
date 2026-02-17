@@ -229,7 +229,9 @@
 	{:else if gameOverInfo}
 		<!-- Game Over Screen -->
 		<div class="game-over card card-glow" in:scale>
-			<span class="game-over-icon" in:fly={{ y: 20, duration: 800 }}>🏆</span>
+			<div class="game-over-icon" in:fly={{ y: 20, duration: 800 }}>
+				<ion-icon name="trophy-outline"></ion-icon>
+			</div>
 			<h2>{getName(gameOverInfo.winner)} Wins!</h2>
 			<p>{getName(gameOverInfo.loser)} went bankrupt</p>
 			{#if game?.playForPoints !== false}
@@ -355,7 +357,7 @@
 				<div class="player-info">
 					<span class="player-name">{getMyPlayer(game)?.name || 'You'}</span>
 					<span class="chip-count">
-						💰 {getMyPlayer(game)?.chips}
+						<ion-icon name="cash-outline"></ion-icon> {getMyPlayer(game)?.chips}
 						{#if (getMyPlayer(game)?.currentBet || 0) > 0}
 							<span class="bet-indicator">Bet: {getMyPlayer(game)?.currentBet}</span>
 						{/if}
@@ -557,6 +559,11 @@
 		opacity: 0.5;
 		filter: grayscale(0.5);
 		transform: scale(0.95);
+	}
+	.game-over-icon {
+		font-size: 4rem;
+		color: var(--gold);
+		filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.4));
 	}
 	@keyframes cardPulse {
 		0% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
