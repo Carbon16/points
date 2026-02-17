@@ -72,7 +72,7 @@ This is a PWA, so it's not going to be super secure. But I did add some security
 
 ## Trust & Integrity
 
-To address concerns about sysadmin manipulation (the "God Mode" problem), this system implements:
+To address concerns about sysadmin manipulation, this system implements:
 
 ### 1. Tamper-Evident Ledger (Blockchain)
 - All point transactions are recorded in a **Linear Hash Chain** (a degenerate Merkle Tree).
