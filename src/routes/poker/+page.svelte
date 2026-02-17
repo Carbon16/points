@@ -410,12 +410,12 @@
 	}
 
 	.game-board {
-		flex: 1;
 		display: flex;
 		flex-direction: column;
-		justify-content: space-between;
+		height: 100%;
+		min-height: 600px; /* Adjust based on your card sizes */
+		justify-content: space-between; /* This pushes top to top, bottom to bottom */
 		position: relative;
-		min-height: 500px;
 	}
 
 	/* ... (existing styles) */
@@ -459,9 +459,12 @@
 	}
 	.opponent-zone { margin-bottom: 20px; }
 	.my-zone { 
-		margin-top: auto; 
-		flex-direction: column-reverse; 
-		padding-bottom: 80px; /* Space for actions bar */
+		display: flex;
+		flex-direction: column-reverse; /* Keeps info below cards */
+		align-items: center;
+		gap: 10px;
+		padding-bottom: 20px; /* Space from the very bottom edge */
+		margin-top: 0; 
 	}
 
 	.player-info {
@@ -518,14 +521,11 @@
 	.my-card .card-center { font-size: 2rem; }
 
 	.table-center {
-		position: absolute;
-		top: 45%; left: 50%; /* Shifted up slightly */
-		transform: translate(-50%, -50%);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: 16px;
-		width: 100%;
+		margin: auto 0; /* This keeps the table perfectly centered between players */
 		z-index: 1;
 	}
 	
@@ -544,10 +544,9 @@
 	.pot-value { font-size: 1.4rem; color: #ffd700; font-weight: 800; text-shadow: 0 0 10px rgba(255,215,0,0.3); }
 
 	.actions-bar {
-		position: absolute;
-		bottom: 20px;
-		left: 50%;
-		transform: translateX(-50%);
+		position: sticky;
+		bottom: 16px;
+		margin: 0 auto;
 		display: flex;
 		flex-wrap: wrap;
 		gap: 8px;
