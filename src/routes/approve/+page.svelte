@@ -25,11 +25,24 @@
 	let message = $state('');
 	
 	let mode = $state<'earn' | 'spend'>('earn');
-	let spendAmount = $state(1);
+	let spendAmount = $state(0.5);
 	let earnAmount = $state(1);
+
+	let users = $state<{id: string, name: string}[]>([]);
+	let myBalance = $state(0);
 
 	onMount(async () => {
 		if (!$auth.token) { goto('/login'); return; }
+		const [uRes, sRes] = await Promise.all([
+			fetch('/api/auth', { headers: getAuthHeaders($auth.token!) }),
+			fetch('/api/points', { headers: getAuthHeaders($auth.token!) })
+		]);
+		const [uData, sData] = await Promise.all([uRes.json(), sRes.json()]);
+		if (uData.success) users = uData.data;
+		if (sData.success) {
+			const myScore = (sData.data as any[]).find(s => s.userId === $auth.userId);
+			myBalance = myScore ? myScore.points : 0;
+		}
 		await loadPending();
 	});
 
@@ -71,6 +84,7 @@
 				payload = `spend:${$auth.userId}:${spendAmount}:${desc}:${timestamp}`;
 				body = {
 					type: 'spend',
+					amount: spendAmount,
 					description: desc,
 					timestamp
 				};
@@ -135,6 +149,8 @@
 	}
 
 	function getName(id: string) {
+		const user = users.find(u => u.id === id);
+		if (user) return user.name;
 		return id === 'player1' ? 'Player 1' : 'Player 2';
 	}
 
@@ -168,20 +184,32 @@
 			
 			{#if mode === 'earn'}
 				<div class="form-group">
-					<label>Award to:</label>
+					<span class="label-text">Award to:</span>
 					<div class="select-row">
-						<button class="user-btn" class:selected={awardTo === 'player1'} onclick={() => awardTo = 'player1'}>
-							Player 1
+						<button class="user-btn" class:selected={awardTo === 'player1'} onclick={() => awardTo = 'player1'} aria-label="Award to Player 1">
+							{getName('player1')}
 						</button>
-						<button class="user-btn" class:selected={awardTo === 'player2'} onclick={() => awardTo = 'player2'}>
-							Player 2
+						<button class="user-btn" class:selected={awardTo === 'player2'} onclick={() => awardTo = 'player2'} aria-label="Award to Player 2">
+							{getName('player2')}
 						</button>
 					</div>
 				</div>
 			{:else}
 				<div class="info-box">
 					<ion-icon name="information-circle-outline"></ion-icon>
-					<p>Spending reduces your score by 1 point.</p>
+					<p>Spending reduces your score. Current Balance: <strong>{myBalance}</strong></p>
+				</div>
+
+				<div class="form-group">
+					<span class="label-text">Amount to spend:</span>
+					<div class="select-row">
+						<button class="user-btn" class:selected={spendAmount === 0.5} onclick={() => spendAmount = 0.5} aria-label="Spend 0.5 points">
+							0.5
+						</button>
+						<button class="user-btn" class:selected={spendAmount === 1} onclick={() => spendAmount = 1} aria-label="Spend 1.0 point">
+							1.0
+						</button>
+					</div>
 				</div>
 			{/if}
 
@@ -307,7 +335,7 @@
 		flex-direction: column;
 		gap: 6px;
 	}
-	.form-group label {
+	.form-group label, .label-text {
 		font-size: 0.8rem;
 		font-weight: 600;
 		color: var(--text-muted);

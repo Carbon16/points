@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { verifyToken } from '$lib/server/auth';
-import { addBlock, getScoreboard } from '$lib/blockchain/chain';
+import { addBlock, getScoreboard, getPointsForUser } from '$lib/blockchain/chain';
 import { getDb } from '$lib/server/db';
 import { notifyOtherUser } from '$lib/server/push';
 import type { PointRequest } from '$lib/types';
@@ -43,7 +43,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		const db = getDb();
 		const timestamp = requestData.timestamp || Date.now();
 		const signatures = requestData.signature ? { [user.userId]: requestData.signature } : {};
-		const amount = requestData.amount || 1;
+		const amount = parseFloat(requestData.amount) || 1.0;
 
 		db.prepare(
 			'INSERT INTO point_requests (id, requested_by, award_to, description, status, approved_by, signatures, created_at, amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
@@ -63,7 +63,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		const db = getDb();
 		const timestamp = requestData.timestamp || Date.now();
 		const signatures = requestData.signature ? { [user.userId]: requestData.signature } : {};
-		const amount = requestData.amount || 1;
+		const amount = parseFloat(requestData.amount) || 1.0;
+
+		// ENFORCEMENT: Check balance
+		const currentBalance = getPointsForUser(user.userId);
+		if (currentBalance < amount) {
+			return json({ success: false, error: `Insufficient points. You have ${currentBalance} and tried to spend ${amount}.` }, { status: 403 });
+		}
 
 		db.prepare(
 			'INSERT INTO point_requests (id, requested_by, award_to, description, status, approved_by, signatures, created_at, type, amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'

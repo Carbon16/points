@@ -64,5 +64,9 @@ export function getScoreboard(): { userId: string; points: number }[] {
 			}
 		}
 	}
-	return Object.entries(scores).map(([userId, points]) => ({ userId, points }));
+	// Return normalized points (solve floating point issues for display if any)
+	return Object.entries(scores).map(([userId, points]) => ({ 
+		userId, 
+		points: Math.round(points * 100) / 100 
+	}));
 }
