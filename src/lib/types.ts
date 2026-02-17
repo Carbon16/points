@@ -72,6 +72,7 @@ export interface GameState {
 	round: number; // betting round (0=pre-flop, 1=flop, 2=turn, 3=river)
 	winner?: string;
 	winReason?: string; // e.g., "with a Flush" or "opponent folded"
+	winningCards?: Card[];
 	handNumber: number;
 	playForPoints: boolean;
 }
@@ -93,6 +94,7 @@ export interface HandEvaluation {
 	rankValue: number;
 	highCards: number[];
 	description: string;
+	cards?: Card[];
 }
 
 // ─── Approvals ────────────────────────────────────────────────────────

@@ -203,6 +203,11 @@
 		return me && op && (me.currentBet || 0) < (op.currentBet || 0);
 	}
 
+	function isHighlighted(card: any) {
+		if (!game?.winningCards) return false;
+		return game.winningCards.some(wc => wc.rank === card.rank && wc.suit === card.suit);
+	}
+
 	import { fly, scale, fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 </script>
@@ -287,7 +292,10 @@
 				<div class="hand-area">
 					{#if getOpponent(game)?.hand && getOpponent(game)!.hand.length > 0}
 						{#each getOpponent(game)!.hand as card (card.rank + card.suit)}
-							<div class="playing-card" class:red={isRed(card.suit)} transition:fly|local={{ y: -50, duration: 400 }}>
+							<div class="playing-card" class:red={isRed(card.suit)} 
+								class:highlighted={isHighlighted(card)}
+								class:dimmed={game.winner && !isHighlighted(card)}
+								transition:fly|local={{ y: -50, duration: 400 }}>
 								<span class="card-rank">{card.rank}</span>
 								<span class="card-suit">{getSuitSymbol(card.suit)}</span>
 							</div>
@@ -308,7 +316,10 @@
 				<div class="community-zone">
 					<div class="community-cards">
 						{#each game.communityCards as card (card.rank + card.suit)}
-							<div class="playing-card community" class:red={isRed(card.suit)} in:scale={{ duration: 400, easing: cubicOut }}>
+							<div class="playing-card community" class:red={isRed(card.suit)} 
+								class:highlighted={isHighlighted(card)}
+								class:dimmed={game.winner && !isHighlighted(card)}
+								in:scale={{ duration: 400, easing: cubicOut }}>
 								<span class="card-rank">{card.rank}</span>
 								<span class="card-suit">{getSuitSymbol(card.suit)}</span>
 							</div>
@@ -332,6 +343,8 @@
 					{#if getMyPlayer(game)?.hand}
 						{#each getMyPlayer(game)!.hand as card, i (card.rank + card.suit)}
 							<div class="playing-card my-card" class:red={isRed(card.suit)} 
+								class:highlighted={isHighlighted(card)}
+								class:dimmed={game.winner && !isHighlighted(card)}
 								in:fly={{ y: 100, duration: 500, delay: i * 150, easing: cubicOut }}>
 								<span class="card-top">{card.rank}{getSuitSymbol(card.suit)}</span>
 								<div class="card-center">{getSuitSymbol(card.suit)}</div>
@@ -546,6 +559,25 @@
 	}
 	.playing-card.red .card-rank, .playing-card.red .card-suit, .playing-card.red .card-top, .playing-card.red .card-center { 
 		color: #ff5555; /* Bright Red */
+	}
+	
+	.playing-card.highlighted {
+		border-color: #ffd700;
+		box-shadow: 0 0 20px rgba(255, 215, 0, 0.6), inset 0 0 10px rgba(255, 215, 0, 0.3);
+		transform: translateY(-5px) scale(1.05);
+		z-index: 10;
+		background: rgba(255, 215, 0, 0.1);
+		animation: cardPulse 2s infinite ease-in-out;
+	}
+	.playing-card.dimmed {
+		opacity: 0.5;
+		filter: grayscale(0.5);
+		transform: scale(0.95);
+	}
+	@keyframes cardPulse {
+		0% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
+		50% { box-shadow: 0 0 35px rgba(255, 215, 0, 0.8); }
+		100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
 	}
 	
 	.card-back {

@@ -214,16 +214,21 @@ function showdown(game: GameState): void {
 		game.players[0].chips += game.pot;
 		game.winner = game.players[0].id;
 		game.winReason = `with ${formatHandRank(p1Hand.rank)}`;
+		game.winningCards = p1Hand.cards;
 	} else if (result < 0) {
 		game.players[1].chips += game.pot;
 		game.winner = game.players[1].id;
 		game.winReason = `with ${formatHandRank(p2Hand.rank)}`;
+		game.winningCards = p2Hand.cards;
 	} else {
 		// Split pot
 		const half = Math.floor(game.pot / 2);
 		game.players[0].chips += half;
 		game.players[1].chips += game.pot - half;
 		game.winReason = `both had ${formatHandRank(p1Hand.rank)}`;
+		// In a split pot, highlight one of the hands (or both if same cards? but they are different objects)
+		// Usually showing one is enough or we could merge but that's complex
+		game.winningCards = p1Hand.cards; 
 	}
 	game.pot = 0;
 }
