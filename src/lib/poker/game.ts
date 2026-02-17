@@ -368,8 +368,14 @@ export function startNextHand(game: GameState): GameState {
 	game.round = 0;
 	game.phase = 'betting';
 	game.winner = undefined;
-	// No Blinds (Requested)
-	game.pot = 0;
+	
+	// Ante: Each player buys in with 5 chips minimum
+	const anteAmount = 5;
+	for (const player of game.players) {
+		const actualAnte = Math.min(anteAmount, player.chips);
+		player.chips -= actualAnte;
+		game.pot += actualAnte;
+	}
 	
 	// Determine dealer (already swapped)
 	const sbPlayerIndex = game.players[0].isDealer ? 0 : 1; 

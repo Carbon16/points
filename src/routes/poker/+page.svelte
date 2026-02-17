@@ -36,6 +36,25 @@
 
 	async function doAction(action: string, data?: any) {
 		error = '';
+
+		// Special case: Create game doesn't need signing (it creates the context)
+		if (action === 'create') {
+			try {
+				const res = await fetch('/api/game', {
+					method: 'POST',
+					headers: { ...getAuthHeaders($auth.token!), 'Content-Type': 'application/json' },
+					body: JSON.stringify({ action, ...data })
+				});
+				const dataRes = await res.json();
+				if (!dataRes.success) { error = dataRes.error; return; }
+				if (dataRes.data?.game) game = dataRes.data.game;
+				else game = dataRes.data;
+			} catch {
+				error = 'Connection failed';
+			}
+			return;
+		}
+
 		if (!game) return;
 
 		// If data is number, treat as amount (backward compat/betting)
@@ -386,12 +405,6 @@
 		display: flex;
 		flex-direction: column;
 		justify-content: space-between;
-		/* Dark Premium Background (Offsuit Style) */
-		background: radial-gradient(circle at center, #27272a 0%, #09090b 100%);
-		border-radius: 20px;
-		padding: 20px;
-		box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
-		border: 8px solid #18181b;
 		position: relative;
 		min-height: 500px;
 	}

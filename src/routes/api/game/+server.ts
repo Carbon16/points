@@ -66,8 +66,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			
 			if (userRow?.public_key) {
 				const publicKey = crypto.createPublicKey({
-					key: JSON.parse(userRow.public_key),
-					format: 'jwk'
+					key: `-----BEGIN PUBLIC KEY-----\n${userRow.public_key}\n-----END PUBLIC KEY-----`,
+					format: 'pem'
 				});
 
 				const signatureBuf = Buffer.from(security.signature, 'base64');
