@@ -152,6 +152,8 @@
 	}
 
 	function getName(id?: string) {
+		const player = game?.players.find(p => p.id === id);
+		if (player) return player.name;
 		return id === 'player1' ? 'Player 1' : 'Player 2';
 	}
 
@@ -194,7 +196,7 @@
 
 <div class="poker-page animate-in">
 	<div class="page-header">
-		<button class="btn btn-ghost icon-btn" onclick={() => goto('/profile')}>
+		<button class="btn btn-ghost icon-btn" onclick={() => goto('/profile')} aria-label="Profile">
 			<ion-icon name="person-circle-outline"></ion-icon>
 		</button>
 		<h1><ion-icon name="card-outline"></ion-icon> Poker</h1>

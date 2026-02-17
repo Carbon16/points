@@ -14,7 +14,12 @@
 	let pullDistance = $state(0);
 	let isPulling = $state(false);
 	let isRefreshing = $state(false);
+	let isStandalone = $state(false);
 	const PULL_THRESHOLD = 80;
+
+	onMount(() => {
+		isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+	});
 
 	const navItems = [
 		{ href: '/', label: 'Dashboard', icon: '<ion-icon name="home-outline"></ion-icon>' },
@@ -54,7 +59,7 @@
 	});
 
 	function handleTouchStart(e: TouchEvent) {
-		if (window.scrollY === 0 && !isRefreshing) {
+		if (isStandalone && window.scrollY === 0 && !isRefreshing) {
 			pullStartY = e.touches[0].clientY;
 			isPulling = true;
 		}
@@ -85,13 +90,15 @@
 	{@render children()}
 {:else}
 	<div class="app-shell" 
+		role="region"
+		aria-label="Main Application"
 		ontouchstart={handleTouchStart} 
 		ontouchmove={handleTouchMove} 
 		ontouchend={handleTouchEnd}>
 		
 		<!-- Pull-to-refresh indicator -->
 		{#if pullDistance > 0 || isRefreshing}
-			<div class="pull-indicator" style="opacity: {Math.min(pullDistance / PULL_THRESHOLD, 1)}; transform: translateY({Math.min(pullDistance, PULL_THRESHOLD)}px)">
+			<div class="pull-indicator" style="opacity: {Math.min(pullDistance / PULL_THRESHOLD, 1)}; transform: translateX(-50%) translateY({Math.min(pullDistance, PULL_THRESHOLD)}px)">
 				<div class="spinner" class:spinning={isRefreshing || pullDistance >= PULL_THRESHOLD}></div>
 			</div>
 		{/if}

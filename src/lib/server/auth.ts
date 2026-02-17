@@ -19,10 +19,10 @@ export function getUsers(): User[] {
 	const db = getDb();
 	const users = db.prepare('SELECT id, name, public_key FROM users').all() as { id: string; name: string; public_key: string }[];
 	
-	// Merge hardcoded names incase they change via env, but prefer DB for public key
+	// Use DB names if available, otherwise fallback to USERS defaults
 	return USERS.map(u => {
 		const dbUser = users.find(du => du.id === u.id);
-		return { ...u, publicKey: dbUser?.public_key };
+		return { ...u, name: dbUser?.name || u.name, publicKey: dbUser?.public_key };
 	});
 }
 
@@ -44,10 +44,10 @@ export function setupUser(userId: string, pin: string, publicKey?: string, encry
 	return true;
 }
 
-export function login(userId: string, pin: string, publicKey?: string, encryptedPrivateKey?: string): { token: string; encryptedPrivateKey?: string } | null {
+export function login(userId: string, pin: string, publicKey?: string, encryptedPrivateKey?: string): { token: string; name: string; encryptedPrivateKey?: string } | null {
 	const db = getDb();
-	const row = db.prepare('SELECT pin_hash, encrypted_private_key FROM users WHERE id = ?').get(userId) as
-		| { pin_hash: string; encrypted_private_key: string | null }
+	const row = db.prepare('SELECT pin_hash, name, encrypted_private_key FROM users WHERE id = ?').get(userId) as
+		| { pin_hash: string; name: string; encrypted_private_key: string | null }
 		| undefined;
 
 	if (!row) {
@@ -56,7 +56,8 @@ export function login(userId: string, pin: string, publicKey?: string, encrypted
 		if (!user) return null;
 		setupUser(userId, pin, publicKey, encryptedPrivateKey);
 		return { 
-			token: jwt.sign({ userId, name: user.name }, JWT_SECRET, { expiresIn: '30d' }) 
+			token: jwt.sign({ userId, name: user.name }, JWT_SECRET, { expiresIn: '30d' }),
+			name: user.name
 		};
 	}
 
@@ -68,9 +69,9 @@ export function login(userId: string, pin: string, publicKey?: string, encrypted
 			.run(publicKey || null, encryptedPrivateKey || null, userId);
 	}
 
-	const user = USERS.find((u) => u.id === userId)!;
 	return {
-		token: jwt.sign({ userId, name: user.name }, JWT_SECRET, { expiresIn: '30d' }),
+		token: jwt.sign({ userId, name: row.name }, JWT_SECRET, { expiresIn: '30d' }),
+		name: row.name,
 		encryptedPrivateKey: row.encrypted_private_key || encryptedPrivateKey || undefined
 	};
 }

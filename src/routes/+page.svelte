@@ -8,8 +8,12 @@
 	let recentBlocks = $state<Block[]>([]);
 	let loading = $state(true);
 
+	let users = $state<{id: string, name: string}[]>([]);
+
 	onMount(async () => {
 		if (!$auth.token) { goto('/login'); return; }
+		const authUsers = await fetch('/api/auth').then(r => r.json());
+		if (authUsers.success) users = authUsers.data;
 		await loadData();
 	});
 
@@ -33,6 +37,8 @@
 	}
 
 	function getPlayerName(id: string) {
+		const user = users.find(u => u.id === id);
+		if (user) return user.name;
 		return id === 'player1' ? 'Player 1' : 'Player 2';
 	}
 
@@ -50,7 +56,7 @@
 <div class="dashboard animate-in">
 	<header class="dash-header">
 		<h1>Points</h1>
-		<button class="btn btn-ghost btn-sm" onclick={() => { auth.logout(); goto('/login'); }}>
+		<button class="btn btn-ghost btn-sm" onclick={() => { auth.logout(); goto('/login'); }} aria-label="Logout">
 			<ion-icon name="log-out-outline"></ion-icon>
 		</button>
 	</header>

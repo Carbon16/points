@@ -12,7 +12,15 @@
 	let notificationStatus = $state('');
     let notificationEnabled = $state(false);
 	
+	let users = $state<any[]>([]);
 	let creatingIdentity = $state(false);
+
+	import { onMount } from 'svelte';
+	onMount(async () => {
+		const res = await fetch('/api/auth');
+		const data = await res.json();
+		if (data.success) users = data.data;
+	});
 	let identityStep = $state(0);
 	
 	let showRestore = $state(false);
@@ -152,7 +160,7 @@
 					return; 
 				}
 
-				auth.login(data.data.token, data.data.userId, selectedUser === 'player1' ? 'Player 1' : 'Player 2');
+				auth.login(data.data.token, data.data.userId, data.data.name);
 				goto('/');
 
 			} catch (e) {
@@ -209,22 +217,16 @@
 				<h2>Sign In</h2>
 
 				<div class="user-select">
-					<button
-						class="user-btn"
-						class:selected={selectedUser === 'player1'}
-						onclick={() => selectedUser = 'player1'}
-					>
-						<span class="user-avatar"><ion-icon name="person-circle-outline"></ion-icon></span>
-						<span>Player 1</span>
-					</button>
-					<button
-						class="user-btn"
-						class:selected={selectedUser === 'player2'}
-						onclick={() => selectedUser = 'player2'}
-					>
-						<span class="user-avatar"><ion-icon name="person-circle-outline"></ion-icon></span>
-						<span>Player 2</span>
-					</button>
+					{#each users as user}
+						<button
+							class="user-btn"
+							class:selected={selectedUser === user.id}
+							onclick={() => selectedUser = user.id}
+						>
+							<span class="user-avatar"><ion-icon name="person-circle-outline"></ion-icon></span>
+							<span>{user.name}</span>
+						</button>
+					{/each}
 				</div>
 
 				<input
