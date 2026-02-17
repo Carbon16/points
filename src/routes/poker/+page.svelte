@@ -174,28 +174,33 @@
 		return suit === 'hearts' || suit === 'diamonds';
 	}
 
-	function getMyPlayer(g: GameState) {
+	function getMyPlayer(g: GameState | null) {
+		if (!g) return null;
 		return g.players.find(p => p.id === $auth.userId);
 	}
 
-	function getOpponent(g: GameState) {
+	function getOpponent(g: GameState | null) {
+		if (!g) return null;
 		return g.players.find(p => p.id !== $auth.userId);
 	}
 
-	function isMyTurn(g: GameState) {
+	function isMyTurn(g: GameState | null) {
+		if (!g) return false;
 		return g.players[g.currentPlayerIndex]?.id === $auth.userId;
 	}
 
-	function canCheck(g: GameState) {
+	function canCheck(g: GameState | null) {
+		if (!g) return false;
 		const me = getMyPlayer(g);
 		const op = getOpponent(g);
-		return me && op && me.currentBet >= op.currentBet;
+		return me && op && (me.currentBet || 0) >= (op.currentBet || 0);
 	}
 
-	function canCall(g: GameState) {
+	function canCall(g: GameState | null) {
+		if (!g) return false;
 		const me = getMyPlayer(g);
 		const op = getOpponent(g);
-		return me && op && me.currentBet < op.currentBet;
+		return me && op && (me.currentBet || 0) < (op.currentBet || 0);
 	}
 
 	import { fly, scale, fade } from 'svelte/transition';
@@ -653,7 +658,7 @@
 		position: absolute;
 		width: 100%;
 		height: 8px;
-		background: rgba(255,,255,0.08);
+		background: rgba(255, 255, 255, 0.08);
 		border-radius: 4px;
 		border: 1px solid rgba(255,255,255,0.05);
 	}
