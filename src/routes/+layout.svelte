@@ -38,6 +38,19 @@
 				console.error('SW Error', e);
 			}
 		}
+
+		// Attempt to lock screen orientation to portrait when possible.
+		// This works on many modern mobile browsers; it will silently fail where unsupported.
+		try {
+			if ((screen as any)?.orientation?.lock) {
+				await (screen as any).orientation.lock('portrait-primary');
+			} else {
+				const lockFn = (screen as any).lockOrientation || (screen as any).mozLockOrientation || (screen as any).msLockOrientation;
+				if (lockFn) lockFn('portrait-primary');
+			}
+		} catch (err) {
+			console.warn('Orientation lock unavailable or denied', err);
+		}
 	});
 
 	function handleTouchStart(e: TouchEvent) {

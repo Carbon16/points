@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { getDb } from './db';
 import type { User } from '$lib/types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'points-app-secret-change-me';
+const JWT_SECRET = process.env.JWT_SECRET || 'default_secret_key'; // In production, use a secure env variable
 
 // Two hardcoded users — set names via env vars or defaults
 const USERS: User[] = [

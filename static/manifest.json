@@ -3,6 +3,7 @@
 	"short_name": "Points",
 	"start_url": "/",
 	"display": "standalone",
+	"orientation": "portrait",
 	"background_color": "#0a0a1a",
 	"theme_color": "#7c3aed",
 	"description": "Poker points tracker with blockchain verification",

@@ -46,15 +46,6 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	const db = getDb();
 	
-	// Check if this hand already exists (by some ID inside data? or generate ID?)
-	// We'll generate a random ID for the DB entry.
-	// But if both players upload the same hand, we want to merge signatures!
-	// We need a deterministic ID for the hand.
-	// Let's assume the client sends a 'handId' in the data or we derive it.
-	// For now, let's just generate a random ID and treat duplicates as separate entries (simplification)
-	// OR, we use the timestamp + gameId as a rough key?
-	// Let's stick to unique entries for now. The "Integrity" comes from the fact that we have the data signed.
-
 	const id = crypto.randomUUID();
 	const signatures = JSON.stringify({ [user.userId]: signature });
 
