@@ -122,7 +122,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		saveGame(game);
 
 		await notifyOtherUser(user.userId, {
-			title: 'Poker Time! 🃏',
+			title: 'Poker??',
 			body: `${user.name} wants to play poker!`,
 			url: '/poker'
 		});

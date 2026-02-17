@@ -66,9 +66,15 @@ self.addEventListener('fetch', (event) => {
 
 // Push notifications
 self.addEventListener('push', (event) => {
-	if (!event.data) return;
+    if (!event.data) return;
 
-	const payload = event.data.json() as { title: string; body: string; url?: string };
+    let payload;
+		try {
+			payload = event.data.json();
+		} catch (e) {
+			// Fallback if backend sent plain text
+			payload = { title: 'New Notification', body: event.data.text() };
+		}
 
 	event.waitUntil(
 		self.registration.showNotification(payload.title, {

@@ -2,11 +2,15 @@
 	import { auth } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { generateKeyPair, exportPublicKey, StoreKeys, GetPublicKey, importKeyPair } from '$lib/crypto';
+	import { initPush } from '$lib/push-client';
 
 	let selectedUser = $state('');
 	let pin = $state('');
 	let error = $state('');
 	let loading = $state(false);
+	let wantNotifications = $state(true);
+	let notificationStatus = $state('');
+    let notificationEnabled = $state(false);
 	
 	let creatingIdentity = $state(false);
 	let identityStep = $state(0);
@@ -18,10 +22,41 @@
 		'Initializing Enclave Node...',
 		'Generating P-256 ECDSA Key Pair...',
 		'Encrypting Local Storage...',
+		'Configuring Push Notifications...',
 		'Registering Signature...'
 	];
 
 	function wait(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+
+	async function enableNotifications() {
+		if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+			alert('Notifications are not supported on this device');
+			return;
+		}
+
+		try {
+			// Request permission (iOS requires this to be from user gesture)
+			const permission = await Notification.requestPermission();
+			
+			if (permission === 'granted') {
+				// Register service worker if not already registered
+				await navigator.serviceWorker.register('/service-worker.js');
+				
+				// Initialize push subscription
+				await initPush($auth.token!);
+				
+				notificationStatus = 'Enabled';
+				notificationEnabled = true;
+				alert('Notifications enabled successfully!');
+			} else {
+				notificationStatus = 'Permission denied';
+				alert('Notification permission was denied');
+			}
+		} catch (e) {
+			console.error('Failed to enable notifications:', e);
+			alert('Failed to enable notifications: ' + (e as Error).message);
+		}
+	}
 
 	async function handleLogin() {
 		if (!selectedUser || !pin) { error = 'Select a player and enter your PIN'; return; }
@@ -36,6 +71,8 @@
 				if (existingKey) {
 					console.log('Found existing key');
 					publicKeyStr = await exportPublicKey(existingKey);
+					if (wantNotifications) await enableNotifications();
+
 				} else {
 					// Secure Onboarding Flow
 					creatingIdentity = true;
@@ -52,7 +89,14 @@
 					await wait(1000);
 
 					identityStep = 3;
-					await wait(800);
+                    // We only run this if the user checked the box, OR you can force it here
+                    if (wantNotifications) {
+                        await enableNotifications();
+                    }
+                    await wait(800);
+
+					identityStep = 4; 
+                    await wait(800);
 				}
 			} catch (e) {
 				console.error('Crypto error:', e);

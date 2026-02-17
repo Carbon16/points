@@ -80,7 +80,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		await notifyOtherUser(user.userId, {
 			title: 'Point Approved!',
-			body: `Point recorded on the blockchain: ${row.description}`,
+			body: `Point recorded on blockchain: ${row.description}`,
 			url: '/'
 		});
 
