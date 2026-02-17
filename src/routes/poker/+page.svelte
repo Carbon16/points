@@ -36,14 +36,45 @@
 
 	async function doAction(action: string, data?: any) {
 		error = '';
+		if (!game) return;
+
 		// If data is number, treat as amount (backward compat/betting)
-		const payload = typeof data === 'number' ? { amount: data } : data;
+		const payloadData = typeof data === 'number' ? { amount: data } : data;
 		
+		// 1. Construct Secure Payload for Non-Repudiation
+		const timestamp = Date.now();
+		const securePayload = {
+			gameId: game.id,
+			handNumber: game.handNumber,
+			userId: $auth.userId,
+			action,
+			amount: payloadData?.amount,
+			timestamp
+		};
+
+		// 2. Sign the Payload
+		let signature = '';
+		try {
+			const pk = await GetPrivateKey();
+			if (!pk) throw new Error('Private key missing');
+			signature = await signData(pk, JSON.stringify(securePayload));
+		} catch (e) {
+			error = 'Security Error: Could not sign action. Please verify your identity (re-login).';
+			return;
+		}
+
 		try {
 			const res = await fetch('/api/game', {
 				method: 'POST',
 				headers: { ...getAuthHeaders($auth.token!), 'Content-Type': 'application/json' },
-				body: JSON.stringify({ action, ...payload })
+				body: JSON.stringify({ 
+					action, 
+					...payloadData,
+					security: {
+						payload: JSON.stringify(securePayload),
+						signature
+					}
+				})
 			});
 			const dataRes = await res.json(); // rename to avoid collision
 			if (!dataRes.success) { error = dataRes.error; return; }
@@ -211,7 +242,12 @@
 			<div class="player-zone opponent-zone">
 				<div class="player-info">
 					<span class="player-name">{getOpponent(game)?.name || 'Opponent'}</span>
-					<span class="chip-count"><ion-icon name="cash-outline"></ion-icon> {getOpponent(game)?.chips}</span>
+					<span class="chip-count">
+						<ion-icon name="cash-outline"></ion-icon> {getOpponent(game)?.chips}
+						{#if (getOpponent(game)?.currentBet || 0) > 0}
+							<span class="bet-indicator">Bet: {getOpponent(game)?.currentBet}</span>
+						{/if}
+					</span>
 					{#if getOpponent(game)?.isDealer}<span class="dealer-badge" in:scale>D</span>{/if}
 				</div>
 				<div class="hand-area">
@@ -271,7 +307,12 @@
 				</div>
 				<div class="player-info">
 					<span class="player-name">{getMyPlayer(game)?.name || 'You'}</span>
-					<span class="chip-count">💰 {getMyPlayer(game)?.chips}</span>
+					<span class="chip-count">
+						💰 {getMyPlayer(game)?.chips}
+						{#if (getMyPlayer(game)?.currentBet || 0) > 0}
+							<span class="bet-indicator">Bet: {getMyPlayer(game)?.currentBet}</span>
+						{/if}
+					</span>
 					{#if getMyPlayer(game)?.isDealer}<span class="dealer-badge" in:scale>D</span>{/if}
 				</div>
 			</div>
@@ -411,7 +452,8 @@
 		border: 1px solid rgba(255,255,255,0.1);
 	}
 	.player-name { font-weight: 700; font-size: 0.8rem; color: white; }
-	.chip-count { font-family: 'Geist Mono', monospace; color: #ffd700; font-weight: 700; }
+	.chip-count { font-family: 'Geist Mono', monospace; color: #ffd700; font-weight: 700; display: flex; gap: 8px; align-items: center; }
+	.bet-indicator { font-size: 0.7rem; color: #aaa; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
 
 	.hand-area { display: flex; gap: 4px; justify-content: center; height: 90px; }
 

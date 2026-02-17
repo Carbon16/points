@@ -368,23 +368,11 @@ export function startNextHand(game: GameState): GameState {
 	game.round = 0;
 	game.phase = 'betting';
 	game.winner = undefined;
-	// Determine dealer (already swapped)
-	const sbPlayerIndex = game.players[0].isDealer ? 0 : 1; // Dealer is SB in heads-up
-	const bbPlayerIndex = 1 - sbPlayerIndex;
-
-	const sbPlayer = game.players[sbPlayerIndex];
-	const bbPlayer = game.players[bbPlayerIndex];
-
-	// Post Blinds
-	const sbAmount = Math.min(5, sbPlayer.chips);
-	sbPlayer.chips -= sbAmount;
-	sbPlayer.currentBet = sbAmount;
+	// No Blinds (Requested)
+	game.pot = 0;
 	
-	const bbAmount = Math.min(10, bbPlayer.chips);
-	bbPlayer.chips -= bbAmount;
-	bbPlayer.currentBet = bbAmount;
-
-	game.pot = sbAmount + bbAmount;
+	// Determine dealer (already swapped)
+	const sbPlayerIndex = game.players[0].isDealer ? 0 : 1; 
 	game.currentPlayerIndex = sbPlayerIndex; // Dealer (SB) acts first pre-flop
 
 	return game;

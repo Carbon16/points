@@ -3,7 +3,8 @@ import type { RequestHandler } from './$types';
 import { verifyToken } from '$lib/server/auth';
 import { createGame, performAction, startNextHand, getPlayerView, isGameOver } from '$lib/poker/game';
 import { addBlock } from '$lib/blockchain/chain';
-import { getDb } from '$lib/server/db';
+import { getDb, saveGameAction } from '$lib/server/db';
+import crypto from 'node:crypto';
 import { notifyOtherUser } from '$lib/server/push';
 import type { GameState } from '$lib/types';
 
@@ -48,7 +49,61 @@ export const POST: RequestHandler = async ({ request }) => {
 	const user = getAuthUser(request);
 	if (!user) return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
-	const { action, amount } = await request.json();
+	const body = await request.json();
+	const { action, amount, security } = body;
+
+	// Verify Non-Repudiation Signature if present
+	if (security) {
+		try {
+			const packet = JSON.parse(security.payload);
+			// Validate payload matches request
+			if (packet.action !== action) throw new Error('Payload mismatch (action)');
+			if (packet.userId !== user.userId) throw new Error('Payload mismatch (user)');
+
+			// Get Public Key
+			const db = getDb();
+			const userRow = db.prepare('SELECT public_key FROM users WHERE id = ?').get(user.userId) as { public_key: string };
+			
+			if (userRow?.public_key) {
+				const publicKey = crypto.createPublicKey({
+					key: JSON.parse(userRow.public_key),
+					format: 'jwk'
+				});
+
+				const signatureBuf = Buffer.from(security.signature, 'base64');
+				const isVerified = crypto.verify(
+					'sha256',
+					Buffer.from(security.payload),
+					{
+						key: publicKey,
+						dsaEncoding: 'ieee-p1363' // Web Crypto (P-256) uses raw P1363 format
+					},
+					signatureBuf
+				);
+
+				if (!isVerified) throw new Error('Invalid Signature');
+
+				// Log Action
+				saveGameAction({
+					id: crypto.randomUUID(),
+					game_id: packet.gameId,
+					hand_number: packet.handNumber,
+					user_id: user.userId,
+					action_type: action,
+					amount: packet.amount,
+					signature: security.signature,
+					timestamp: packet.timestamp
+				});
+			} else {
+				console.warn('User has no public key for verification');
+			}
+		} catch (e) {
+			console.error('Signature verification failed:', e);
+			return json({ success: false, error: 'Security verification failed' }, { status: 403 });
+		}
+	} else if (['bet', 'check', 'call', 'raise', 'all-in', 'fold'].includes(action)) {
+		// Optional: Enforce specific actions to be signed
+	}
 
 	// Create new game
 	if (action === 'create') {

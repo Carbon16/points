@@ -50,6 +50,18 @@ export function getDb(): Database.Database {
 				created_at INTEGER NOT NULL DEFAULT (unixepoch())
 			);
 
+			CREATE TABLE IF NOT EXISTS game_actions (
+				id TEXT PRIMARY KEY,
+				game_id TEXT NOT NULL,
+				hand_number INTEGER,
+				user_id TEXT NOT NULL,
+				action_type TEXT NOT NULL,
+				amount INTEGER,
+				signature TEXT NOT NULL,
+				timestamp INTEGER
+			);
+			CREATE INDEX IF NOT EXISTS idx_actions_game ON game_actions(game_id);
+
 			CREATE TABLE IF NOT EXISTS game_state (
 				id TEXT PRIMARY KEY DEFAULT 'current',
 				state TEXT NOT NULL,
@@ -88,4 +100,21 @@ export function getDb(): Database.Database {
 		} catch (e) { /* ignore */ }
 	}
 	return db;
+}
+
+export function saveGameAction(action: {
+	id: string;
+	game_id: string;
+	hand_number: number;
+	user_id: string;
+	action_type: string;
+	amount?: number;
+	signature: string;
+	timestamp: number;
+}) {
+	const db = getDb();
+	db.prepare(`
+		INSERT INTO game_actions (id, game_id, hand_number, user_id, action_type, amount, signature, timestamp)
+		VALUES (@id, @game_id, @hand_number, @user_id, @action_type, @amount, @signature, @timestamp)
+	`).run(action);
 }

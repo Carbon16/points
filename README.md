@@ -68,7 +68,26 @@ This is a PWA, so it's not going to be super secure. But I did add some security
 - Public key cryptography
 - Request approval system
 - Identity backup and recovery
-- Silly blockchain because I can
+- Silly blockchain because I can (Tamper-Evident Log)
+
+## Trust & Integrity
+
+To address concerns about sysadmin manipulation (the "God Mode" problem), this system implements:
+
+### 1. Tamper-Evident Ledger (Blockchain)
+- All point transactions are recorded in a **Linear Hash Chain** (a degenerate Merkle Tree).
+- Each block contains the hash of the previous block (`prevHash`).
+- Modifying any past block invalidates the hash chain, making tampering detectable.
+- **Sysadmin Limit:** An admin can delete the database file, but cannot secretly modify a user's balance history without breaking the chain's integrity.
+
+### 2. Non-Repudiation (Game Actions)
+- Every critical game action (Bet, Check, Fold) is cryptographically signed by the user's private key (P-256 curve).
+- The server stores these signatures in an immutable `game_actions` log.
+- This provides mathematical proof of every move, preventing a corrupt server from fabricating game states.
+
+### 3. Identity & Keys
+- Private keys never leave the user's device (stored in IndexedDB/Secure Enclave).
+- The server only holds Public Keys for verification.
 
 ## Notes & Feedback
 
