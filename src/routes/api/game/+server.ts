@@ -50,7 +50,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (!user) return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
 	const body = await request.json();
-	const { action, amount, security } = body;
+	const { action, amount, security, playForPoints } = body;
 
 	// Verify Non-Repudiation Signature if present
 	if (security) {
@@ -114,10 +114,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ success: false, error: 'Game already in progress' }, { status: 400 });
 		}
 
-		/* Extract playForPoints from request, default true */
-		const { playForPoints } = await request.json().catch(() => ({ playForPoints: true }));
-
-		const game = createGame('player1', 'Player 1', 'player2', 'Player 2', playForPoints);
+		const game = createGame('player1', 'Player 1', 'player2', 'Player 2', playForPoints ?? true);
 		// Phase is 'waiting' by default now
 		saveGame(game);
 
