@@ -38,6 +38,7 @@
 	}
 
 	import { GetPrivateKey, signData } from '$lib/crypto';
+	import { bestHand } from '$lib/poker/hand';
 	
 	let playForPoints = $state(true);
 
@@ -230,6 +231,33 @@
 		return game.winningCards.some(wc => wc.rank === card.rank && wc.suit === card.suit);
 	}
 
+	let currentBestHand = $state<any[]>([]);
+	
+	$effect(() => {
+		if (!game) {
+			currentBestHand = [];
+			return;
+		}
+		const me = getMyPlayer(game);
+		if (!me || me.hand.length === 0) {
+			currentBestHand = [];
+			return;
+		}
+		const allCards = [...me.hand, ...game.communityCards];
+		if (allCards.length > 0) {
+			const res = bestHand(allCards);
+			currentBestHand = res.cards || [];
+		} else {
+			currentBestHand = [];
+		}
+	});
+
+	function isSuggestion(card: any) {
+		// Only show suggestion if there is NO winner yet
+		if (game?.winner) return false;
+		return currentBestHand.some(c => c.rank === card.rank && c.suit === card.suit);
+	}
+
 	import { fly, scale, fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 </script>
@@ -329,6 +357,7 @@
 						{#each getOpponent(game)!.hand as card (card.rank + card.suit)}
 							<div class="playing-card" class:red={isRed(card.suit)} 
 								class:highlighted={isHighlighted(card)}
+								class:suggestion={isSuggestion(card)}
 								class:dimmed={game.winner && !isHighlighted(card)}
 								transition:fly|local={{ y: -50, duration: 400 }}>
 								<span class="card-rank">{card.rank}</span>
@@ -353,6 +382,7 @@
 						{#each game.communityCards as card (card.rank + card.suit)}
 							<div class="playing-card community" class:red={isRed(card.suit)} 
 								class:highlighted={isHighlighted(card)}
+								class:suggestion={isSuggestion(card)}
 								class:dimmed={game.winner && !isHighlighted(card)}
 								in:scale={{ duration: 400, easing: cubicOut }}>
 								<span class="card-rank">{card.rank}</span>
@@ -379,6 +409,7 @@
 						{#each getMyPlayer(game)!.hand as card, i (card.rank + card.suit)}
 							<div class="playing-card my-card" class:red={isRed(card.suit)} 
 								class:highlighted={isHighlighted(card)}
+								class:suggestion={isSuggestion(card)}
 								class:dimmed={game.winner && !isHighlighted(card)}
 								in:fly={{ y: 100, duration: 500, delay: i * 150, easing: cubicOut }}>
 								<span class="card-top">{card.rank}{getSuitSymbol(card.suit)}</span>
@@ -605,6 +636,11 @@
 		z-index: 10;
 		background: rgba(255, 215, 0, 0.1);
 		animation: cardPulse 2s infinite ease-in-out;
+	}
+	.playing-card.suggestion {
+		border-color: #00d2ff;
+		box-shadow: 0 0 15px rgba(0, 210, 255, 0.4), inset 0 0 5px rgba(0, 210, 255, 0.2);
+		transform: translateY(-2px);
 	}
 	.playing-card.dimmed {
 		opacity: 0.5;
