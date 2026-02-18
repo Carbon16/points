@@ -19,7 +19,12 @@ const HAND_RANK_VALUES: Record<HandRank, number> = {
 };
 
 function getRankValue(rank: Rank): number {
-	return RANK_VALUES[rank];
+	const val = RANK_VALUES[String(rank) as Rank];
+	if (val === undefined) {
+		console.error(`Invalid rank encountered: ${rank}`);
+		return 0; // Prevent grouping undefineds into a pair
+	}
+	return val;
 }
 
 function getCounts(cards: Card[]): Map<number, number> {
