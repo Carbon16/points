@@ -115,7 +115,11 @@
 						</div>
 						<div class="activity-info">
 							<span class="activity-title">
-								{getPlayerName(block.data.winner || '')} earned a point
+								{#if block.data.type === 'spend'}
+									{getPlayerName(block.data.winner || '')} spent points
+								{:else}
+									{getPlayerName(block.data.winner || '')} earned a point
+								{/if}
 							</span>
 							<span class="activity-meta">
 								{block.data.type === 'poker_win' ? 'Poker Win' : block.data.description}
