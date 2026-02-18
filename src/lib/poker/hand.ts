@@ -18,7 +18,7 @@ const HAND_RANK_VALUES: Record<HandRank, number> = {
 	'royal-flush': 9
 };
 
-function getRankValue(rank: Rank): number {
+export function getRankValue(rank: Rank): number {
 	const val = RANK_VALUES[String(rank) as Rank];
 	if (val === undefined) {
 		console.error(`Invalid rank encountered: ${rank}`);

@@ -38,7 +38,7 @@
 	}
 
 	import { GetPrivateKey, signData } from '$lib/crypto';
-	import { bestHand } from '$lib/poker/hand';
+	import { bestHand, getRankValue } from '$lib/poker/hand';
 	
 	let playForPoints = $state(true);
 
@@ -246,8 +246,20 @@
 		const allCards = [...me.hand, ...game.communityCards];
 		if (allCards.length > 0) {
 			const res = bestHand(allCards);
-			// Use coreCards if available (for precise highlighting), otherwise fallback to cards
-			currentBestHand = res.coreCards || res.cards || [];
+			
+			if (res.rank === 'high-card') {
+				// Special Case: User requests to highlight THEIR highest card, not the board's high card
+				if (me.hand.length > 0) {
+					// Find highest card in *my* hand
+					const sortedHand = [...me.hand].sort((a, b) => getRankValue(b.rank) - getRankValue(a.rank));
+					currentBestHand = [sortedHand[0]];
+				} else {
+					currentBestHand = [];
+				}
+			} else {
+				// Use coreCards if available (for precise highlighting), otherwise fallback to cards
+				currentBestHand = res.coreCards || res.cards || [];
+			}
 		} else {
 			currentBestHand = [];
 		}
