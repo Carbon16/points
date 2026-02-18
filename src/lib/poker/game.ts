@@ -122,10 +122,19 @@ export function performAction(game: GameState, playerId: string, action: PlayerA
 			const raiseAmount = amount || 10;
 			const toCall = opponent.currentBet - player.currentBet;
 			const totalNeeded = toCall + raiseAmount;
-			if (totalNeeded > player.chips) throw new Error('Not enough chips');
-			player.chips -= totalNeeded;
-			player.currentBet += totalNeeded;
-			game.pot += totalNeeded;
+			
+			if (totalNeeded >= player.chips) {
+				// Not enough to raise fully, or exactly all-in => Treat as All-In
+				const allInAmount = player.chips;
+				player.currentBet += allInAmount;
+				game.pot += allInAmount;
+				player.chips = 0;
+				// Effectively an all-in
+			} else {
+				player.chips -= totalNeeded;
+				player.currentBet += totalNeeded;
+				game.pot += totalNeeded;
+			}
 			break;
 		}
 		case 'fold': {
@@ -274,6 +283,11 @@ function finishHand(game: GameState, winnerId: string): GameState {
 }
 
 export function isGameOver(game: GameState): { over: boolean; winner?: string; loser?: string } {
+	// Don't end game during a hand (even if someone is all-in with 0 chips)
+	if (game.phase === 'betting' || game.phase === 'dealing' || game.round > 0) {
+		return { over: false };
+	}
+
 	for (const player of game.players) {
 		if (player.chips <= 0) {
 			const winner = game.players.find((p) => p.id !== player.id)!;
