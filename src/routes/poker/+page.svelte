@@ -246,7 +246,8 @@
 		const allCards = [...me.hand, ...game.communityCards];
 		if (allCards.length > 0) {
 			const res = bestHand(allCards);
-			currentBestHand = res.cards || [];
+			// Use coreCards if available (for precise highlighting), otherwise fallback to cards
+			currentBestHand = res.coreCards || res.cards || [];
 		} else {
 			currentBestHand = [];
 		}

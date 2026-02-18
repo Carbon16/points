@@ -94,7 +94,8 @@ export interface HandEvaluation {
 	rankValue: number;
 	highCards: number[];
 	description: string;
-	cards?: Card[];
+	cards: Card[]; // The full 5-card hand
+	coreCards: Card[]; // The cards that define the rank (e.g. the pair, the flush, etc)
 }
 
 // ─── Approvals ────────────────────────────────────────────────────────

@@ -53,7 +53,8 @@ export function evaluateHand(cards: Card[]): HandEvaluation {
 	if (cards.length < 5) {
 		// For partial hands, just evaluate what we have
 		const values = cards.map((c) => getRankValue(c.rank)).sort((a, b) => b - a);
-		return { rank: 'high-card', rankValue: 0, highCards: values, description: 'High Card', cards };
+		const highCard = cards.find(c => getRankValue(c.rank) === values[0]) || cards[0];
+		return { rank: 'high-card', rankValue: 0, highCards: values, description: 'High Card', cards, coreCards: [highCard] };
 	}
 
 	const flush = isFlush(cards);
@@ -69,51 +70,62 @@ export function evaluateHand(cards: Card[]): HandEvaluation {
 
 	// Royal Flush
 	if (flush && straight && straightHigh === 14) {
-		return { rank: 'royal-flush', rankValue: 9, highCards: [14], description: 'Royal Flush', cards };
+		return { rank: 'royal-flush', rankValue: 9, highCards: [14], description: 'Royal Flush', cards, coreCards: cards };
 	}
 
 	// Straight Flush
 	if (flush && straight) {
-		return { rank: 'straight-flush', rankValue: 8, highCards: [straightHigh], description: `Straight Flush (${straightHigh} high)`, cards };
+		return { rank: 'straight-flush', rankValue: 8, highCards: [straightHigh], description: `Straight Flush (${straightHigh} high)`, cards, coreCards: cards };
 	}
 
 	// Four of a Kind
 	if (countEntries[0][1] === 4) {
-		return { rank: 'four-of-a-kind', rankValue: 7, highCards, description: `Four of a Kind (${countEntries[0][0]}s)`, cards };
+		const fourRank = countEntries[0][0];
+		const core = cards.filter(c => getRankValue(c.rank) === fourRank);
+		return { rank: 'four-of-a-kind', rankValue: 7, highCards, description: `Four of a Kind (${countEntries[0][0]}s)`, cards, coreCards: core };
 	}
 
 	// Full House
 	if (countEntries[0][1] === 3 && countEntries[1][1] === 2) {
-		return { rank: 'full-house', rankValue: 6, highCards, description: `Full House (${countEntries[0][0]}s over ${countEntries[1][0]}s)`, cards };
+		return { rank: 'full-house', rankValue: 6, highCards, description: `Full House (${countEntries[0][0]}s over ${countEntries[1][0]}s)`, cards, coreCards: cards };
 	}
 
 	// Flush
 	if (flush) {
-		return { rank: 'flush', rankValue: 5, highCards, description: 'Flush', cards };
+		return { rank: 'flush', rankValue: 5, highCards, description: 'Flush', cards, coreCards: cards };
 	}
 
 	// Straight
 	if (straight) {
-		return { rank: 'straight', rankValue: 4, highCards: [straightHigh], description: `Straight (${straightHigh} high)`, cards };
+		return { rank: 'straight', rankValue: 4, highCards: [straightHigh], description: `Straight (${straightHigh} high)`, cards, coreCards: cards };
 	}
 
 	// Three of a Kind
 	if (countEntries[0][1] === 3) {
-		return { rank: 'three-of-a-kind', rankValue: 3, highCards, description: `Three of a Kind (${countEntries[0][0]}s)`, cards };
+		const tripRank = countEntries[0][0];
+		const core = cards.filter(c => getRankValue(c.rank) === tripRank);
+		return { rank: 'three-of-a-kind', rankValue: 3, highCards, description: `Three of a Kind (${countEntries[0][0]}s)`, cards, coreCards: core };
 	}
 
 	// Two Pair
 	if (countEntries[0][1] === 2 && countEntries[1][1] === 2) {
-		return { rank: 'two-pair', rankValue: 2, highCards, description: `Two Pair (${countEntries[0][0]}s and ${countEntries[1][0]}s)`, cards };
+		const rank1 = countEntries[0][0];
+		const rank2 = countEntries[1][0];
+		const core = cards.filter(c => getRankValue(c.rank) === rank1 || getRankValue(c.rank) === rank2);
+		return { rank: 'two-pair', rankValue: 2, highCards, description: `Two Pair (${countEntries[0][0]}s and ${countEntries[1][0]}s)`, cards, coreCards: core };
 	}
 
 	// Pair
 	if (countEntries[0][1] === 2) {
-		return { rank: 'pair', rankValue: 1, highCards, description: `Pair of ${countEntries[0][0]}s`, cards };
+		const pairRank = countEntries[0][0];
+		const core = cards.filter(c => getRankValue(c.rank) === pairRank);
+		return { rank: 'pair', rankValue: 1, highCards, description: `Pair of ${countEntries[0][0]}s`, cards, coreCards: core };
 	}
 
 	// High Card
-	return { rank: 'high-card', rankValue: 0, highCards, description: `High Card (${highCards[0]})`, cards };
+	const highRank = highCards[0];
+	const core = cards.filter(c => getRankValue(c.rank) === highRank).slice(0,1);
+	return { rank: 'high-card', rankValue: 0, highCards, description: `High Card (${highCards[0]})`, cards, coreCards: core };
 }
 
 export function compareHands(hand1: HandEvaluation, hand2: HandEvaluation): number {
