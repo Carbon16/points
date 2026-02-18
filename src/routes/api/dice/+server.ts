@@ -1,29 +1,23 @@
 
 import { json } from '@sveltejs/kit';
 import { createGame, performAction, type DiceGameState } from '$lib/dice/game';
-import { getChain, addBlock } from '$lib/blockchain/chain';
-import { signData, GetPrivateKey } from '$lib/crypto';
-import jwt from 'jsonwebtoken';
+import { addBlock } from '$lib/blockchain/chain';
+import { verifyToken } from '$lib/server/auth';
 
 // In-memory store for active games (similar to poker)
 const games = new Map<string, DiceGameState>();
 
-const JWT_SECRET = 'your-secret-key'; // Should be env var
-
 export async function POST({ request, cookies }) {
     const token = cookies.get('token');
-    if (!token) return json({ error: 'Unauthorized' }, { status: 401 });
+    const authHeader = request.headers.get('Authorization');
+    const actualToken = token || (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null);
 
-    let userId: string;
-    let userName: string;
+    if (!actualToken) return json({ error: 'Unauthorized' }, { status: 401 });
 
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
-        userId = decoded.userId;
-        userName = decoded.name; // Assuming name is in token
-    } catch {
-        return json({ error: 'Invalid token' }, { status: 401 });
-    }
+    const decoded = verifyToken(actualToken);
+    if (!decoded) return json({ error: 'Invalid token' }, { status: 401 });
+
+    const { userId, name: userName } = decoded;
 
     const { action, gameId, payload } = await request.json();
 
@@ -81,8 +75,8 @@ export async function POST({ request, cookies }) {
                 const winnerId = updatedGame.winner;
                 
                 // Construct block data
-                const blockData = {
-                    type: 'poker_win', // Re-use type or add new 'dice_win'? 'poker_win' is fine or 'game_win'
+                const blockData: any = { // Type assertion/any to bypass strict checks if BlockData import not perfectly aligned yet, or use BlockData interface
+                    type: 'dice_win', 
                     // actually type is strictly typed in types.ts. 'poker_win' logic handles 1 point.
                     // If we want 0.5, 'poker_win' might imply 1 point logic elsewhere?
                     // Let's check block processing.
