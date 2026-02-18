@@ -156,16 +156,21 @@ export function performAction(game: GameState, playerId: string, action: PlayerA
 	// Handle uncalled bet refund (Heads-up specific simplification)
 	if (player.chips === 0 || opponent.chips === 0) {
 		if (player.currentBet > opponent.currentBet) {
-			const refund = player.currentBet - opponent.currentBet;
-			player.currentBet -= refund;
-			player.chips += refund;
-			game.pot -= refund;
+			// I bet more than opponent. Refund me ONLY if opponent is all-in (cannot call)
+			if (opponent.chips === 0) {
+				const refund = player.currentBet - opponent.currentBet;
+				player.currentBet -= refund;
+				player.chips += refund;
+				game.pot -= refund;
+			}
 		} else if (opponent.currentBet > player.currentBet) {
-			// Opponent bet more than I could call
-			const refund = opponent.currentBet - player.currentBet;
-			opponent.currentBet -= refund;
-			opponent.chips += refund;
-			game.pot -= refund;
+			// Opponent bet more than I could call. Refund opponent because I am all-in
+			if (player.chips === 0) {
+				const refund = opponent.currentBet - player.currentBet;
+				opponent.currentBet -= refund;
+				opponent.chips += refund;
+				game.pot -= refund;
+			}
 		}
 	}
 
