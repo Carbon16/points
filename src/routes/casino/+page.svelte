@@ -28,6 +28,16 @@
 				<p>Bluff your way to victory</p>
 			</div>
 		</button>
+
+		<button class="game-card draw" onclick={() => goto('/casino/draw')}>
+			<div class="icon">
+				<ion-icon name="heart-outline"></ion-icon>
+			</div>
+			<div class="info">
+				<h2>Draw</h2>
+				<p>Spend your hard earned points...</p>
+			</div>
+		</button>
 	</div>
 </div>
 
@@ -48,6 +58,7 @@
 		font-weight: 800;
 		background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
 		-webkit-background-clip: text;
+		background-clip: text;
 		-webkit-text-fill-color: transparent;
 		margin: 0;
 	}

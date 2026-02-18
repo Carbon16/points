@@ -11,6 +11,23 @@ The points PWA is a Progressive Web App with basic blockchain that allows users 
 - Identity backup and recovery
 - Silly blockchain because I can
 
+## Manifest
+
+```json
+{
+    "place": {
+        "min": 1, 
+        "max": 2,
+        "cards": ["London", "Paris", "New York", "Tokyo"],
+        "icon": "location-outline",
+        "colour": "#3b82f6",
+        "font": "sans-serif"
+    },
+    "etc": {
+        etc...
+    }
+```
+
 ## Deployment
 
 Stick it on a VPS with

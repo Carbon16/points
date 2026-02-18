@@ -69,7 +69,72 @@ export function getDb(): Database.Database {
 				state TEXT NOT NULL,
 				updated_at INTEGER NOT NULL DEFAULT (unixepoch())
 			);
+
+			CREATE TABLE IF NOT EXISTS draws (
+				id TEXT PRIMARY KEY,
+				user_id TEXT NOT NULL,
+				drawn_at INTEGER NOT NULL,
+				expires_at INTEGER NOT NULL,
+				is_visible INTEGER DEFAULT 0,
+				completed_by TEXT DEFAULT '[]',
+				metadata TEXT NOT NULL
+			);
+
+			CREATE TABLE IF NOT EXISTS drawn_cards (
+				id TEXT PRIMARY KEY,
+				draw_id TEXT NOT NULL,
+				type TEXT NOT NULL,
+				card_content TEXT NOT NULL,
+				metadata TEXT NOT NULL,
+				FOREIGN KEY(draw_id) REFERENCES draws(id) ON DELETE CASCADE
+			);
+
+			CREATE TABLE IF NOT EXISTS card_requests (
+				id TEXT PRIMARY KEY,
+				requested_by TEXT NOT NULL,
+				action TEXT NOT NULL,
+				category TEXT NOT NULL,
+				card_content TEXT NOT NULL,
+				status TEXT DEFAULT 'pending',
+				approved_by TEXT DEFAULT '[]',
+				created_at INTEGER NOT NULL
+			);
 		`);
+
+		// Migration: ensure draws table exists (in case it was partially applied or table structure changed)
+		db.exec(`
+			CREATE TABLE IF NOT EXISTS draws (
+				id TEXT PRIMARY KEY,
+				user_id TEXT NOT NULL,
+				drawn_at INTEGER NOT NULL,
+				expires_at INTEGER NOT NULL,
+				is_visible INTEGER DEFAULT 0,
+				completed_by TEXT DEFAULT '[]',
+				metadata TEXT NOT NULL
+			);
+		`);
+
+		// Migration for drawn_cards: if user_id exists, we need to refactor it.
+		// Since this is a new feature and probably empty, let's just recreate if it's the old version
+		// or add the column.
+		try {
+			const info = db.prepare("PRAGMA table_info(drawn_cards)").all() as any[];
+			const hasUserId = info.some(c => c.name === 'user_id');
+			if (hasUserId) {
+				// We need to migrate. To keep it simple for this early stage:
+				db.exec(`DROP TABLE drawn_cards;`);
+				db.exec(`
+					CREATE TABLE drawn_cards (
+						id TEXT PRIMARY KEY,
+						draw_id TEXT NOT NULL,
+						type TEXT NOT NULL,
+						card_content TEXT NOT NULL,
+						metadata TEXT NOT NULL,
+						FOREIGN KEY(draw_id) REFERENCES draws(id) ON DELETE CASCADE
+					);
+				`);
+			}
+		} catch (e) { /* table might not exist yet */ }
 
 		// Migration: add public_key if missing
 		try {
