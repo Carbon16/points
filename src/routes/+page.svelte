@@ -81,9 +81,9 @@
 
 	<!-- Quick Actions -->
 	<div class="actions">
-		<button class="action-card card" onclick={() => goto('/poker')}>
-			<span class="action-icon"><ion-icon name="card-outline"></ion-icon></span>
-			<span class="action-label">Play Poker</span>
+		<button class="action-card card" onclick={() => goto('/casino')}>
+			<span class="action-icon"><ion-icon name="game-controller-outline"></ion-icon></span>
+			<span class="action-label">Visit Casino</span>
 		</button>
 		<button class="action-card card" onclick={() => goto('/approve')}>
 			<span class="action-icon"><ion-icon name="add-circle-outline"></ion-icon></span>
