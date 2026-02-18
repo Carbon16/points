@@ -25,7 +25,7 @@ export interface DiceGameState {
     pot: number;
     currentBid?: Bid;
     history: Bid[];
-    phase: 'betting' | 'showdown' | 'complete'; // 'betting' includes the initial roll
+    phase: 'betting' | 'showdown' | 'round-over' | 'complete'; // 'betting' includes the initial roll
     winner?: string;
     winReason?: string;
     stakes: Stakes;
@@ -58,14 +58,52 @@ export function joinGame(game: DiceGameState, playerId: string, playerName: stri
     return game;
 }
 
+export function startNextHand(game: DiceGameState): DiceGameState {
+    // Reset round state
+    game.phase = 'betting';
+    game.pot = 0;
+    game.currentBid = undefined;
+    game.history = [];
+    game.winner = undefined;
+    game.winReason = undefined;
+
+    // Reroll hands
+    game.players.forEach(p => {
+        p.hand = rollHand();
+        p.currentBet = 0;
+    });
+
+    // Auto-ante
+    deductAnte(game);
+
+    // Rotate turn? Let's say loser of previous round goes first?
+    // Or just alternate. For simplicity, let's just make sure someone isTurn.
+    // Let's swap turns from whoever started last? 
+    // Simply: Set turn to Player 1, then swap if it was Player 1 last time?
+    // Easier: The 'winner' of the previous hand usually goes first (or last).
+    // Let's just randomise or keep it simple.
+    // User didn't specify. Let's make Player 1 turn for now to ensure liveness.
+    game.players[0].isTurn = true;
+    game.players[1].isTurn = false;
+
+    return game;
+}
+
 function rollHand(): DiceFace[] {
     return Array.from({ length: 5 }, () => (Math.floor(Math.random() * 6) + 1) as DiceFace);
 }
 
-export function performAction(game: DiceGameState, userId: string, action: 'bid' | 'challenge', payload?: any): DiceGameState {
+export function performAction(game: DiceGameState, userId: string, action: 'bid' | 'challenge' | 'next-hand', payload?: any): DiceGameState {
+    if (action === 'next-hand') {
+        if (game.phase !== 'round-over') throw new Error('Cannot start next hand yet');
+        return startNextHand(game);
+    }
+
     const playerIndex = game.players.findIndex(p => p.id === userId);
     if (playerIndex === -1) throw new Error('Player not in game');
     const player = game.players[playerIndex];
+    if (!player.isTurn && action !== 'challenge') throw new Error('Not your turn'); 
+    // Challenge can be done out of turn? No, usually you challenge when it IS your turn, instead of bidding.
     if (!player.isTurn) throw new Error('Not your turn');
 
     // Auto-Ante on first move if pot is empty? 
@@ -153,17 +191,22 @@ export function performAction(game: DiceGameState, userId: string, action: 'bid'
         
         const winner = game.players.find(p => p.id === winnerId)!;
         winner.chips += game.pot;
+        // Do NOT reset pot to 0 yet, UI needs to show it was won.
+        // Actually, we added it to winner chips, so pot IS technically drained.
+        // We can visualy show it.
         game.pot = 0;
         
         game.winner = winnerId;
         game.winReason = reason;
-        game.phase = 'showdown'; // Ends the round.
         
-        // Note: We don't loop hands indefinitely in this basic version unless requested.
-        // User said: "Stakes are represented by a Central Pot... Showdown... winner takes pot."
-        // Implies single round or manual restart.
-        // We'll treat 'showdown' as end of block/hand.
-        game.phase = 'complete'; 
+        // Check Bankruptcy
+        const loser = game.players.find(p => p.id !== winnerId)!;
+        if (loser.chips <= 0) {
+            game.phase = 'complete';
+            game.winReason += ' - OPPONENT BANKRUPT!';
+        } else {
+            game.phase = 'round-over';
+        }
     }
 
     return game;

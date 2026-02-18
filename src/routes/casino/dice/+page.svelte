@@ -134,6 +134,31 @@
 
     // Old startPolling removed, main polling is now handled by loadGame via onMount
 
+    async function nextHand() {
+        if (!game || !$auth.token) return;
+        const res = await fetch('/api/dice', {
+             method: 'POST',
+             headers: { ...getAuthHeaders($auth.token), 'Content-Type': 'application/json' },
+             body: JSON.stringify({ action: 'next-hand', gameId: game.id })
+        });
+        const data = await res.json();
+        if (data.success) game = data.game;
+    }
+
+    async function leaveGame() {
+        if (!game || !$auth.token) {
+            game = null;
+            return;
+        }
+        await fetch('/api/dice', {
+             method: 'POST',
+             headers: { ...getAuthHeaders($auth.token), 'Content-Type': 'application/json' },
+             body: JSON.stringify({ action: 'leave', gameId: game.id })
+        });
+        game = null;
+        loadGame(); // Refresh lobby
+    }
+
     // Helper for Dice Icons
     function getDiceIcon(face: number) {
         return ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][face - 1] || '?';
@@ -201,12 +226,22 @@
                 <div class="waiting-text">Waiting for opening bid...</div>
             {/if}
             
-            {#if game.phase === 'complete'}
+            {#if game.phase === 'complete' || game.phase === 'round-over'}
                 <div class="game-over">
-                     <h2>Game Over!</h2>
+                     {#if game.phase === 'complete'}
+                        <h2>Game Over!</h2>
+                     {:else}
+                        <h2>Round Over!</h2>
+                     {/if}
+                     
                      <p>{game.winReason}</p>
                      <p>Winner: {game?.players.find(p => p.id === game?.winner)?.name}</p>
-                     <button class="btn" onclick={() => game = null}>Back to Lobby</button>
+                     
+                     {#if game.phase === 'complete'}
+                        <button class="btn" onclick={leaveGame}>Back to Lobby</button>
+                     {:else}
+                        <button class="btn primary" onclick={nextHand}>Next Hand</button>
+                     {/if}
                 </div>
             {/if}
         </div>
@@ -222,7 +257,7 @@
             </div>
             
             <!-- Controls -->
-            {#if game.players.find(p => p.id === $auth.userId)?.isTurn && game.phase !== 'complete'}
+            {#if game.players.find(p => p.id === $auth.userId)?.isTurn && game.phase === 'betting'}
                 <div class="controls">
                     <div class="bid-row">
                         <div class="bid-group">

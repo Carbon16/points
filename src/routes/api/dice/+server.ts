@@ -48,36 +48,58 @@ export async function POST({ request, cookies }) {
         }
     }
     
+    if (action === 'leave') {
+        // Allow user to leave/clear the game
+        if (gameId && games.has(gameId)) {
+             // We could check if they are actually in it, but for now just clear it if they know the ID?
+             // Better: Check if userId is a player.
+             const g = games.get(gameId)!;
+             if (g.players.some(p => p.id === userId)) {
+                 games.delete(gameId);
+             }
+        }
+        return json({ success: true });
+    }
+    
     // Actions requiring gameId
     const game = games.get(gameId);
     if (!game) return json({ error: 'Game not found' }, { status: 404 });
 
     try {
+        // Prevent actions on completed games except leave (handled above)
+        if (game.phase === 'complete') {
+             return json({ success: true, game });
+        }
+
         const updatedGame = performAction(game, userId, action, payload);
         
         if (updatedGame.phase === 'complete' && updatedGame.winner) {
-            // Record result on blockchain if playing for stakes
-            if (updatedGame.stakes !== 'none') {
-                const points = updatedGame.stakes === 'full' ? 1 : 0.5;
-                const winnerId = updatedGame.winner;
-                
-                // Construct block data
-                const blockData: any = { 
-                    type: 'dice_win', 
-                    winner: winnerId,
-                    loser: updatedGame.players.find(p => p.id !== winnerId)?.id,
-                    description: `Won Liar's Dice (${points} pts): ${updatedGame.winReason}`,
-                    approvedBy: [updatedGame.players[0].id, updatedGame.players[1].id], 
-                    timestamp: Date.now(),
-                    amount: points
-                };
+            // Check if we already recorded this to avoid dupes
+            if (!(updatedGame as any).resultsRecorded) {
+                // Record result on blockchain if playing for stakes
+                if (updatedGame.stakes !== 'none') {
+                    const points = updatedGame.stakes === 'full' ? 1 : 0.5;
+                    const winnerId = updatedGame.winner;
+                    
+                    // Construct block data
+                    const blockData: any = { 
+                        type: 'dice_win', 
+                        winner: winnerId,
+                        loser: updatedGame.players.find(p => p.id !== winnerId)?.id,
+                        description: `Won Liar's Dice (${points} pts): ${updatedGame.winReason}`,
+                        approvedBy: [updatedGame.players[0].id, updatedGame.players[1].id], 
+                        timestamp: Date.now(),
+                        amount: points
+                    };
 
-                await addBlock(blockData);
+                    await addBlock(blockData);
+                }
+                (updatedGame as any).resultsRecorded = true;
             }
-            games.delete(gameId); // Cleanup
-        } else {
-            games.set(gameId, updatedGame);
+            // Do NOT delete game here. User must click 'leave'.
         }
+        
+        games.set(gameId, updatedGame);
 
         return json({ success: true, game: updatedGame });
     } catch (e: any) {
