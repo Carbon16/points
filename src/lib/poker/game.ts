@@ -18,7 +18,19 @@ function createDeck(): Card[] {
 function shuffle<T>(arr: T[]): T[] {
 	const a = [...arr];
 	for (let i = a.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
+		// Secure Random Index with Rejection Sampling
+		const max = i + 1;
+		const range = 0xFFFFFFFF;
+		const limit = range - (range % max);
+		const buffer = new Uint32Array(1);
+		
+		let rand;
+		do {
+			crypto.getRandomValues(buffer);
+			rand = buffer[0];
+		} while (rand >= limit);
+		
+		const j = rand % max;
 		[a[i], a[j]] = [a[j], a[i]];
 	}
 	return a;
