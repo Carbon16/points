@@ -23,9 +23,7 @@
 
 	const navItems = [
 		{ href: '/', label: 'Dashboard', icon: '<ion-icon name="home-outline"></ion-icon>' },
-		{ href: '/', label: 'Dashboard', icon: '<ion-icon name="home-outline"></ion-icon>' },
 		{ href: '/casino', label: 'Casino', icon: '<ion-icon name="game-controller-outline"></ion-icon>' },
-		{ href: '/approve', label: 'Approve', icon: '<ion-icon name="checkmark-circle-outline"></ion-icon>' },
 		{ href: '/approve', label: 'Approve', icon: '<ion-icon name="checkmark-circle-outline"></ion-icon>' },
 		{ href: '/chain', label: 'Chain', icon: '<ion-icon name="link-outline"></ion-icon>' }
 	];

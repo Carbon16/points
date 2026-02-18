@@ -110,8 +110,8 @@
             <h1>Liar's Dice</h1>
             
             <div class="control-group">
-                <label>Stakes:</label>
-                <select bind:value={selectedStakes}>
+                <label for="stakes-select">Stakes:</label>
+                <select id="stakes-select" bind:value={selectedStakes}>
                     <option value="full">Full Point (1.0)</option>
                     <option value="half">Half Point (0.5)</option>
                     <option value="none">Practice (No Points)</option>
@@ -136,9 +136,9 @@
         <!-- Opponent Area -->
         <div class="opponent-area">
             <div class="avatar">👤 Opponent</div>
-            <div class="stats">Chips: {game.players.find(p => p.id !== $auth.user.id)?.chips}</div>
+            <div class="stats">Chips: {game.players.find(p => p.id !== $auth.userId)?.chips}</div>
             <div class="cup">
-                {#each game.players.find(p => p.id !== $auth.user.id)?.hand || [] as d}
+                {#each game.players.find(p => p.id !== $auth.userId)?.hand || [] as d}
                    <span class="die hidden">?</span>
                 {/each}
             </div>
@@ -160,7 +160,7 @@
                 <div class="game-over">
                      <h2>Game Over!</h2>
                      <p>{game.winReason}</p>
-                     <p>Winner: {game.players.find(p => p.id === game.winner)?.name}</p>
+                     <p>Winner: {game?.players.find(p => p.id === game?.winner)?.name}</p>
                      <button class="btn" onclick={() => game = null}>Back to Lobby</button>
                 </div>
             {/if}
@@ -169,15 +169,15 @@
         <!-- Player Area -->
         <div class="player-area">
              <div class="avatar">👤 You</div>
-             <div class="stats">Chips: {game.players.find(p => p.id === $auth.user.id)?.chips}</div>
+             <div class="stats">Chips: {game.players.find(p => p.id === $auth.userId)?.chips}</div>
              <div class="cup">
-                {#each game.players.find(p => p.id === $auth.user.id)?.hand || [] as d}
+                {#each game.players.find(p => p.id === $auth.userId)?.hand || [] as d}
                    <span class="die">{getDiceIcon(d)}</span>
                 {/each}
             </div>
             
             <!-- Controls -->
-            {#if game.players.find(p => p.id === $auth.user.id)?.isTurn && game.phase !== 'complete'}
+            {#if game.players.find(p => p.id === $auth.userId)?.isTurn && game.phase !== 'complete'}
                 <div class="controls">
                     <div class="bid-input">
                         Quantity: <input type="number" min="1" bind:value={bidQuantity} />
