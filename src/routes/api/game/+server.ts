@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { verifyToken } from '$lib/server/auth';
-import { createGame, performAction, startNextHand, getPlayerView, isGameOver } from '$lib/poker/game';
+import { createGame, performAction, startNextHand, getPlayerView, isGameOver, joinGame } from '$lib/poker/game';
 import { addBlock } from '$lib/blockchain/chain';
 import { getDb, saveGameAction } from '$lib/server/db';
 import crypto from 'node:crypto';
@@ -10,6 +10,8 @@ import type { GameState } from '$lib/types';
 
 function getAuthUser(request: Request) {
 	const auth = request.headers.get('authorization');
+	// Allow 'waiting' placeholder to be viewed as "me" (hack for join logic?) No.
+	// We should just return null if auth header is missing or invalid.
 	if (!auth?.startsWith('Bearer ')) return null;
 	return verifyToken(auth.slice(7));
 }
@@ -103,8 +105,22 @@ export const POST: RequestHandler = async ({ request }) => {
 			console.error('Signature verification failed:', e);
 			return json({ success: false, error: 'Security verification failed' }, { status: 403 });
 		}
-	} else if (['bet', 'check', 'call', 'raise', 'all-in', 'fold'].includes(action)) {
+	} else if (['bet', 'check', 'call', 'raise', 'all-in', 'fold', 'join'].includes(action)) {
 		// Optional: Enforce specific actions to be signed
+	}
+
+	// Join game
+	if (action === 'join') {
+		const game = loadGame();
+		if (!game) return json({ success: false, error: 'No game' }, { status: 400 });
+
+		try {
+			joinGame(game, user.userId, user.name);
+			saveGame(game);
+			return json({ success: true, data: getPlayerView(game, user.userId) });
+		} catch (err) {
+			return json({ success: false, error: err instanceof Error ? err.message : 'Failed to join' }, { status: 400 });
+		}
 	}
 
 	// Create new game
@@ -114,7 +130,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ success: false, error: 'Game already in progress' }, { status: 400 });
 		}
 
-		const game = createGame('player1', 'Player 1', 'player2', 'Player 2', playForPoints ?? true);
+
+		const game = createGame(user.userId, user.name, 'waiting', 'Waiting...', playForPoints ?? true);
 		// Phase is 'waiting' by default now
 		saveGame(game);
 
@@ -136,13 +153,18 @@ export const POST: RequestHandler = async ({ request }) => {
 		if (over) {
 			// Record point on blockchain IF playing for points
 			if (game.playForPoints !== false) {
-				addBlock({
-					type: 'poker_win',
-					winner: winner!,
-					loser: loser!,
-					approvedBy: [winner!, loser!],
-					timestamp: Date.now()
-				});
+				// Prevent saving blocks with 'waiting' placeholder
+				if (winner === 'waiting' || loser === 'waiting') {
+					console.error('Cannot save block with placeholder user');
+				} else {
+					addBlock({
+						type: 'poker_win',
+						winner: winner!,
+						loser: loser!,
+						approvedBy: [winner!, loser!],
+						timestamp: Date.now()
+					});
+				}
 			}
 			clearGame();
 			return json({

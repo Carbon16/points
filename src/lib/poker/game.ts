@@ -61,12 +61,30 @@ export function __createGame(player1Id: string, player1Name: string, player2Id: 
 
 export { __createGame as createGame };
 
+export function joinGame(game: GameState, playerId: string, playerName: string): GameState {
+	if (game.phase !== 'waiting') throw new Error('Game already started');
+	
+	const emptySlotIndex = game.players.findIndex(p => p.id === 'waiting');
+	if (emptySlotIndex === -1) throw new Error('Game is full');
+
+	game.players[emptySlotIndex].id = playerId;
+	game.players[emptySlotIndex].name = playerName;
+	
+	return game;
+}
+
 export function performAction(game: GameState, playerId: string, action: PlayerAction | 'start', amount?: number): GameState {
 	const playerIndex = game.players.findIndex((p) => p.id === playerId);
 	if (playerIndex === -1) throw new Error('Player not in game');
 	
 	if (action === 'start') {
 		if (game.phase !== 'waiting') throw new Error('Game already started');
+		
+		// Ensure game is full
+		if (game.players.some(p => p.id === 'waiting')) {
+			throw new Error('Waiting for opponent to join');
+		}
+
 		// Determine who starts? Anyone can start the game from lobby
 		return startNextHand(game);
 	}
@@ -144,21 +162,36 @@ export function performAction(game: GameState, playerId: string, action: PlayerA
 
 	const isPreFlop = game.round === 0;
 	if (player.currentBet === opponent.currentBet) {
-	
 		const isDealer = player.isDealer;
 		const isLastToAct = isPreFlop ? !isDealer : isDealer;
 
-		if (player.currentBet === opponent.currentBet) {
-			if (isLastToAct) {
-				advanceRound(game);
-				return game;
-			}
-	
-			if (player.chips === 0 || opponent.chips === 0) {
-				advanceRound(game);
-				return game;
-			}
+		// If bets are non-zero and equal, the pot is right => advance
+		// (In heads-up, if I call a bet, we are done. If I raise, they aren't equal.)
+		if (player.currentBet > 0) {
+			advanceRound(game);
+			return game;
 		}
+
+		// If bets are zero (check-check), only advance if I am last to act
+		if (player.currentBet === 0 && isLastToAct) {
+			advanceRound(game);
+			return game;
+		}
+
+		// Otherwise (e.g. Dealer checked pre-flop? No, dealer is SB. 
+		// If Dealer checks pre-flop (limp), bets are equal (5=5). Dealer acted. Last to act is BB. 
+		// wait, if Dealer calls (5), bets are equal. Dealer is NOT last to act preflop. Round continues. Correct.
+		// If BB checks. Bets equal. BB IS last to act preflop. Round advances. Correct.
+		
+		// What about Post-Flop?
+		// BB (First) Checks (0). Bets equal. BB !LastToAct. Round continues.
+		// Dealer (Last) Checks (0). Bets equal. Dealer IsLastToAct. Round advances. Correct.
+		
+		// The previous bug was:
+		// Post-Flop: BB Checks. Dealer Bets. BB Calls.
+		// Player is BB. Bets Equal (>0). 
+		// Logic was: BB !LastToAct => Round Continues. (WRONG)
+		// New Logic: Bets > 0 => Round Advances. (CORRECT)
 	}
 
 	game.currentPlayerIndex = 1 - game.currentPlayerIndex;
@@ -268,7 +301,10 @@ export function startNextHand(game: GameState): GameState {
 	game.pot = 0;
 	game.round = 0;
 	game.phase = 'betting';
+	game.phase = 'betting';
 	game.winner = undefined;
+	game.winReason = undefined; 
+	game.winningCards = undefined;
 	
 	// Ante: Each player buys in with 5 chips minimum
 	const anteAmount = 5;

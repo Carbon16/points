@@ -294,9 +294,20 @@
 				{/each}
 			</div>
 			
-			<button class="btn btn-primary" onclick={() => doAction('start')}>
-				Deal Cards
-			</button>
+			{#if !getMyPlayer(game)}
+				<button class="btn btn-primary" onclick={() => doAction('join')}>
+					Join Game
+				</button>
+			{:else if game.players.some(p => p.id === 'waiting')}
+				<p class="waiting-text" style="color: var(--text-muted); padding: 10px;">Waiting for opponent to join...</p>
+				<button class="btn btn-primary" disabled style="opacity: 0.5; cursor: not-allowed;">
+					Deal Cards
+				</button>
+			{:else}
+				<button class="btn btn-primary" onclick={() => doAction('start')}>
+					Deal Cards
+				</button>
+			{/if}
 		</div>
 	{:else}
 		<!-- Active Game -->
