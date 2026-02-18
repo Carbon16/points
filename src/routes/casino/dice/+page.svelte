@@ -90,6 +90,23 @@
         else alert(data.error); 
     }
 
+    function cycleFace() {
+        bidFace = (bidFace % 6) + 1 as DiceFace;
+    }
+
+    function incQty() {
+        // Can't decrease below current bid unless face is higher? No, standard rule is:
+        // Raise Qty OR Raise Face (same Qty).
+        // UI should just allow any positive integer and validation handles it.
+        // Or enforce min based on current bid to be helpful?
+        // Let's just do simple +/- for now.
+        bidQuantity++;
+    }
+
+    function decQty() {
+        if (bidQuantity > 1) bidQuantity--;
+    }
+
     function startPolling() {
         if (pollingInterval) clearInterval(pollingInterval);
         pollingInterval = setInterval(async () => {
@@ -98,7 +115,6 @@
                     headers: getAuthHeaders($auth.token) 
                 });
                 const updated = await res.json();
-                // Simple update
                 if (updated && updated.id) game = updated;
             }
         }, 1000);
@@ -129,12 +145,6 @@
             </div>
 
             <button class="btn primary" onclick={createGame}>Create Game</button>
-            
-            <!-- List waiting games here ideally -->
-             <div class="waiting-list">
-                 <h3>Waiting Games</h3>
-                 <!-- We'd fetch these on mount. For now, manual refresh needed or simplistic -->
-             </div>
         </div>
     {:else}
         <!-- Game Interface -->
@@ -156,14 +166,16 @@
 
         <!-- Table / Bid History -->
         <div class="table-area">
-            <h3>Current Bid</h3>
+            <h3>Current High Bid</h3>
             {#if game.currentBid}
                 <div class="current-bid">
-                    {game.currentBid.quantity} x <span class="die-icon">{getDiceIcon(game.currentBid.face)}</span>
+                    <span class="bid-qty">{game.currentBid.quantity}</span>
+                    <span class="x-swords">×</span>
+                    <span class="die-icon">{getDiceIcon(game.currentBid.face)}</span>
                     <span class="bid-amt">(${game.currentBid.betAmount})</span>
                 </div>
             {:else}
-                <div class="waiting-text">Waiting for first bid...</div>
+                <div class="waiting-text">Waiting for opening bid...</div>
             {/if}
             
             {#if game.phase === 'complete'}
@@ -189,26 +201,36 @@
             <!-- Controls -->
             {#if game.players.find(p => p.id === $auth.userId)?.isTurn && game.phase !== 'complete'}
                 <div class="controls">
-                    <div class="bid-input">
-                        Quantity: <input type="number" min="1" bind:value={bidQuantity} />
-                        Face: <select bind:value={bidFace}>
-                            <option value={1}>1</option>
-                            <option value={2}>2</option>
-                            <option value={3}>3</option>
-                            <option value={4}>4</option>
-                            <option value={5}>5</option>
-                            <option value={6}>6</option>
-                        </select>
-                    </div>
-                    
-                    <div class="bet-input">
-                        Raise: <input type="number" min="10" step="10" bind:value={raiseAmount} />
+                    <div class="bid-row">
+                        <div class="bid-group">
+                            <label>Count</label>
+                            <div class="stepper">
+                                <button class="step-btn" onclick={decQty}>−</button>
+                                <span class="step-value">{bidQuantity}</span>
+                                <button class="step-btn" onclick={incQty}>+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="bid-group">
+                            <label>Face</label>
+                            <button class="face-btn" onclick={cycleFace}>
+                                {getDiceIcon(bidFace)}
+                            </button>
+                        </div>
+
+                        <div class="bid-group grow">
+                            <label>Raise Chips</label>
+                            <div class="chip-input">
+                                <span>$</span>
+                                <input type="number" min="10" step="10" bind:value={raiseAmount} />
+                            </div>
+                        </div>
                     </div>
 
                     <div class="actions">
-                        <button class="btn action" onclick={submitBid}>Bid</button>
+                        <button class="btn action" onclick={submitBid}>make bid</button>
                         {#if game.currentBid}
-                            <button class="btn danger" onclick={challenge}>Liar!</button>
+                            <button class="btn danger" onclick={challenge}>liar!</button>
                         {/if}
                     </div>
                 </div>
@@ -220,6 +242,103 @@
 </div>
 
 <style>
+    /* ... existing styles ... */
+    /* Add new styles for controls */
+    .bid-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+        align-items: flex-end;
+    }
+    
+    .bid-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+    .bid-group.grow { flex: 1;    align-items: stretch; }
+
+    .bid-group label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        letter-spacing: 0.1em;
+    }
+
+    .stepper {
+        display: flex;
+        align-items: center;
+        background: rgba(255,255,255,0.1);
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .step-btn {
+        background: transparent;
+        border: none;
+        color: white;
+        width: 40px;
+        height: 44px;
+        font-size: 1.2rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .step-btn:hover { background: rgba(255,255,255,0.1); }
+    
+    .step-value {
+        width: 40px;
+        text-align: center;
+        font-weight: 700;
+        font-size: 1.2rem;
+    }
+
+    .face-btn {
+        background: white;
+        color: black;
+        border: none;
+        width: 50px;
+        height: 50px;
+        border-radius: 8px;
+        font-size: 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        transition: transform 0.1s;
+    }
+    .face-btn:active { transform: scale(0.95); }
+
+    .chip-input {
+        display: flex;
+        align-items: center;
+        background: rgba(0,0,0,0.3);
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.2);
+        padding: 0 10px;
+    }
+    .chip-input span { color: #ffd700; font-weight: bold; }
+    .chip-input input {
+        background: transparent;
+        border: none;
+        color: white;
+        width: 100%;
+        text-align: right;
+        font-family: 'Geist Mono', monospace;
+        font-size: 1.2rem;
+        padding: 10px;
+    }
+    .chip-input input:focus { outline: none; background: transparent; }
+
+    .x-swords { color: var(--text-muted); font-size: 1.2rem; margin: 0 5px; }
+    .bid-qty { font-size: 2.5rem; color: white; }
+    
+    /* Ensure other styles remain or are imported/merged */
+    /* Check previous CSS block to ensure validity */
     .dice-container {
         padding: 20px;
         max-width: 600px;
@@ -389,13 +508,6 @@
         box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
     }
     
-    .bid-input, .bet-input {
-        margin-bottom: 15px;
-        display: flex;
-        gap: 15px;
-        justify-content: center;
-        align-items: center;
-    }
     
     input, select {
         background: rgba(255,255,255,0.1);
