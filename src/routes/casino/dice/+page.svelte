@@ -1,7 +1,7 @@
 
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
-    import { auth } from '$lib/stores/auth';
+    import { auth, getAuthHeaders } from '$lib/stores/auth';
     import { goto } from '$app/navigation';
     import type { DiceGameState, DiceFace, Stakes } from '$lib/dice/game';
 
@@ -15,23 +15,27 @@
     let selectedStakes = $state<Stakes>('full');
 
     async function loadGame() {
+        if (!$auth.token) return;
+        const headers = getAuthHeaders($auth.token);
+        
         if (!game?.id) {
             // Check for existing/waiting games
-            const res = await fetch('/api/dice');
+            const res = await fetch('/api/dice', { headers });
             const waitingGames = await res.json();
             if (waitingGames.length > 0) {
                  // Auto-join first waiting game? Or specific UI?
-                 // For simplicity, let's just show a "Join Game" button if not in one.
             }
         } else {
-             const res = await fetch(`/api/dice?id=${game.id}`);
+             const res = await fetch(`/api/dice?id=${game.id}`, { headers });
              game = await res.json();
         }
     }
 
     async function createGame() {
+        if (!$auth.token) return;
         const res = await fetch('/api/dice', {
             method: 'POST',
+            headers: { ...getAuthHeaders($auth.token), 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'create', payload: { stakes: selectedStakes } })
         });
         const data = await res.json();
@@ -42,8 +46,10 @@
     }
 
     async function joinGame(gameId: string) {
+        if (!$auth.token) return;
         const res = await fetch('/api/dice', {
             method: 'POST',
+            headers: { ...getAuthHeaders($auth.token), 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'join', gameId })
         });
         const data = await res.json();
@@ -54,9 +60,10 @@
     }
 
     async function submitBid() {
-        if (!game) return;
+        if (!game || !$auth.token) return;
         const res = await fetch('/api/dice', {
             method: 'POST',
+            headers: { ...getAuthHeaders($auth.token), 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 action: 'bid', 
                 gameId: game.id, 
@@ -69,9 +76,10 @@
     }
 
     async function challenge() {
-       if (!game) return;
+       if (!game || !$auth.token) return;
         const res = await fetch('/api/dice', {
             method: 'POST',
+            headers: { ...getAuthHeaders($auth.token), 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 action: 'challenge', 
                 gameId: game.id 
@@ -85,8 +93,10 @@
     function startPolling() {
         if (pollingInterval) clearInterval(pollingInterval);
         pollingInterval = setInterval(async () => {
-            if (game?.id) {
-                const res = await fetch(`/api/dice?id=${game.id}`);
+            if (game?.id && $auth.token) {
+                const res = await fetch(`/api/dice?id=${game.id}`, { 
+                    headers: getAuthHeaders($auth.token) 
+                });
                 const updated = await res.json();
                 // Simple update
                 if (updated && updated.id) game = updated;
@@ -235,6 +245,7 @@
         margin-bottom: 30px;
         background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
         -webkit-background-clip: text;
+        background-clip: text; 
         -webkit-text-fill-color: transparent;
     }
     

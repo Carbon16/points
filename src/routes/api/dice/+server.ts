@@ -10,11 +10,13 @@ const games = new Map<string, DiceGameState>();
 export async function POST({ request, cookies }) {
     const token = cookies.get('token');
     const authHeader = request.headers.get('Authorization');
-    const actualToken = token || (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null);
+    const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const actualToken = headerToken || token; 
 
     if (!actualToken) return json({ error: 'Unauthorized' }, { status: 401 });
 
     const decoded = verifyToken(actualToken);
+    
     if (!decoded) return json({ error: 'Invalid token' }, { status: 401 });
 
     const { userId, name: userName } = decoded;
