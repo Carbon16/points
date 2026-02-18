@@ -55,7 +55,7 @@
 
     function startPolling() {
         if (pollingInterval) clearInterval(pollingInterval);
-        pollingInterval = setInterval(loadGame, 1000);
+        pollingInterval = setInterval(loadGame, 500);
     }
 
     async function createGame() {
@@ -203,7 +203,7 @@
 
         <!-- Opponent Area -->
         <div class="opponent-area">
-            <div class="avatar">👤 Opponent</div>
+            <div class="avatar">👤 {game.players.find(p => p.id !== $auth.userId)?.name || 'Opponent'}</div>
             <div class="stats">Chips: {game.players.find(p => p.id !== $auth.userId)?.chips}</div>
             <div class="cup">
                 {#each game.players.find(p => p.id !== $auth.userId)?.hand || [] as d}
@@ -214,7 +214,7 @@
 
         <!-- Table / Bid History -->
         <div class="table-area">
-            <h3>Current High Bid</h3>
+            <h3>Current High Bid {#if game?.currentBid}({game?.players.find(p => p.id === game.currentBid!.userId)?.name}){:else}(Waiting){/if}</h3>
             {#if game.currentBid}
                 <div class="current-bid">
                     <span class="bid-qty">{game.currentBid.quantity}</span>
@@ -248,7 +248,7 @@
 
         <!-- Player Area -->
         <div class="player-area">
-             <div class="avatar">👤 You</div>
+             <div class="avatar">👤 {game.players.find(p => p.id === $auth.userId)?.name || 'You'}</div>
              <div class="stats">Chips: {game.players.find(p => p.id === $auth.userId)?.chips}</div>
              <div class="cup">
                 {#each game.players.find(p => p.id === $auth.userId)?.hand || [] as d}
@@ -293,7 +293,7 @@
                     </div>
                 </div>
             {:else}
-                <div class="waiting-text">Opponent's Turn...</div>
+                <div class="waiting-text">{game.players.find(p => p.isTurn)?.name}'s Turn...</div>
             {/if}
         </div>
     {/if}
