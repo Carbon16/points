@@ -214,7 +214,7 @@
 
         <!-- Table / Bid History -->
         <div class="table-area">
-            <h3>Current High Bid {#if game?.currentBid}({game?.players.find(p => p.id === game.currentBid!.userId)?.name}){:else}(Waiting){/if}</h3>
+            <h3>Current High Bid {#if game?.currentBid}({game?.players.find(p => p.id === game?.currentBid?.userId)?.name}){:else}(Waiting){/if}</h3>
             {#if game.currentBid}
                 <div class="current-bid">
                     <span class="bid-qty">{game.currentBid.quantity}</span>
