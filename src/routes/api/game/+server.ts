@@ -43,7 +43,19 @@ export const GET: RequestHandler = async ({ request }) => {
 	const game = loadGame();
 	if (!game) return json({ success: true, data: null });
 
-	return json({ success: true, data: getPlayerView(game, user.userId) });
+	const { over, winner, loser } = isGameOver(game);
+	// Don't report absolute game over during showdown - let them see the result
+	const reportOver = over && game.phase !== 'showdown';
+
+	return json({ 
+		success: true, 
+		data: {
+			...getPlayerView(game, user.userId),
+			gameOver: reportOver,
+			winner,
+			loser
+		}
+	});
 };
 
 // POST /api/game — game actions
@@ -191,11 +203,18 @@ export const POST: RequestHandler = async ({ request }) => {
 			saveGame(game);
 
 			const { over, winner, loser } = isGameOver(game);
+			// Do not trigger the game-over screen if we just moved to showdown
+			const reportOver = over && game.phase !== 'showdown';
 			const view = getPlayerView(game, user.userId);
 
 			return json({
 				success: true,
-				data: { game: view, gameOver: over, winner, loser }
+				data: { 
+					game: view, 
+					gameOver: reportOver, 
+					winner, 
+					loser 
+				}
 			});
 		} catch (err) {
 			return json({

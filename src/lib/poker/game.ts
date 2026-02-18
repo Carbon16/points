@@ -300,8 +300,8 @@ function finishHand(game: GameState, winnerId: string): GameState {
 }
 
 export function isGameOver(game: GameState): { over: boolean; winner?: string; loser?: string } {
-	// Don't end game during a hand (even if someone is all-in with 0 chips)
-	if (game.phase === 'betting' || game.phase === 'dealing' || game.round > 0) {
+	// Don't end game during an active hand (betting or dealing)
+	if (game.phase === 'betting' || game.phase === 'dealing') {
 		return { over: false };
 	}
 
