@@ -13,6 +13,7 @@
     let bidFace = $state<DiceFace>(1);
     let raiseAmount = $state(10);
     let selectedStakes = $state<Stakes>('full');
+    let waitingGames = $state<any[]>([]);
 
     async function loadGame() {
         if (!$auth.token) return;
@@ -21,9 +22,9 @@
         if (!game?.id) {
             // Check for existing/waiting games
             const res = await fetch('/api/dice', { headers });
-            const waitingGames = await res.json();
-            if (waitingGames.length > 0) {
-                 // Auto-join first waiting game? Or specific UI?
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                waitingGames = data;
             }
         } else {
              const res = await fetch(`/api/dice?id=${game.id}`, { headers });
@@ -144,12 +145,25 @@
                 </select>
             </div>
 
+
             <button class="btn primary" onclick={createGame}>Create Game</button>
+
+            {#if waitingGames.length > 0}
+                <div class="waiting-list">
+                    <h2>Join Existing Game</h2>
+                    {#each waitingGames as g}
+                        <div class="game-item">
+                            <span>{g.players[0].name}'s Game ({g.stakes})</span>
+                            <button class="btn action sm" onclick={() => joinGame(g.id)}>Join</button>
+                        </div>
+                    {/each}
+                </div>
+            {/if}
         </div>
     {:else}
         <!-- Game Interface -->
         <header class="game-header">
-            <div class="pot">Pot: ${game.pot}</div>
+            <div class="pot">Pot: £{game.pot}</div>
             <div class="stakes">Stakes: {game.stakes}</div>
         </header>
 
@@ -172,7 +186,7 @@
                     <span class="bid-qty">{game.currentBid.quantity}</span>
                     <span class="x-swords">×</span>
                     <span class="die-icon">{getDiceIcon(game.currentBid.face)}</span>
-                    <span class="bid-amt">(${game.currentBid.betAmount})</span>
+                    <span class="bid-amt">(£{game.currentBid.betAmount})</span>
                 </div>
             {:else}
                 <div class="waiting-text">Waiting for opening bid...</div>
@@ -221,7 +235,7 @@
                         <div class="bid-group grow">
                             <label>Raise Chips</label>
                             <div class="chip-input">
-                                <span>$</span>
+                                <span>£</span>
                                 <input type="number" min="10" step="10" bind:value={raiseAmount} />
                             </div>
                         </div>
@@ -257,7 +271,7 @@
         align-items: center;
         gap: 8px;
     }
-    .bid-group.grow { flex: 1;    align-items: stretch; }
+    .bid-group.grow { flex: 1;    align-items: stretch; min-width: 0; }
 
     .bid-group label {
         font-size: 0.7rem;
@@ -585,5 +599,37 @@
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+
+    .waiting-list {
+        margin-top: 30px;
+        width: 100%;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .waiting-list h2 {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .game-item {
+        background: rgba(255,255,255,0.05);
+        padding: 15px;
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .btn.sm {
+        padding: 8px 16px;
+        font-size: 0.9rem;
     }
 </style>

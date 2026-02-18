@@ -37,34 +37,12 @@ export async function POST({ request, cookies }) {
         if (!gameId) return json({ error: 'Missing gameId' }, { status: 400 });
         
         try {
-            const dbName = getUserName(userId);
-            const game = joinGame(gameId, userId, dbName || userName);
-            // In-memory update (if joinGame affects a global store, but here it likely expects us to manage it)
-            // Wait, joinGame in dice/game.ts takes (gameId, ...) but returns game.
-            // But dice/game.ts doesn't have access to 'games' Map. 
-            // Actually, looking at imports -> imports from $lib/dice/game.
-            
-            // Let's re-read dice/game.ts to see joinGame signature. 
-            // If it needs the game object, we must pass it.
-            // My previous view of dice/game.ts did NOT show joinGame export!
-            // I need to check dice/game.ts again. 
-            
-            // Assuming joinGame signature: joinGame(game, userId, userName) -> game
             const existingGame = games.get(gameId);
             if (!existingGame) return json({ error: 'Game not found' }, { status: 404 });
-            
-            // Logic to update existingGame:
-            if (existingGame.players[1].id !== 'waiting') return json({ error: 'Game full' }, { status: 400 });
-            existingGame.players[1].id = userId;
-            existingGame.players[1].name = dbName || userName;
-            // Ante logic
-             for (const p of existingGame.players) {
-                const amt = Math.min(p.chips, 10); // Ante 10
-                p.chips -= amt;
-                existingGame.pot += amt;
-            }
 
-            return json({ success: true, game: existingGame });
+            const dbName = getUserName(userId);
+            const game = joinGame(existingGame, userId, dbName || userName);
+            return json({ success: true, game });
         } catch (e: any) {
              return json({ error: e.message }, { status: 400 });
         }

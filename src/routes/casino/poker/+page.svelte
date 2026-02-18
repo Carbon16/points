@@ -409,7 +409,7 @@
 					<div class="pot-display">
 						<span class="pot-label">POT</span>
 						{#key game.pot}
-							<span class="pot-value" in:scale>{game.pot}</span>
+						<span class="pot-value" in:scale>£{game.pot}</span>
 						{/key}
 					</div>
 				</div>
@@ -451,13 +451,13 @@
 							<button class="btn btn-primary big-check" onclick={() => doAction('check')}>Check</button>
 						{:else if canCall(game)}
 							<button class="btn btn-primary big-check" onclick={() => doAction('call')}>
-								Call { (getOpponent(game)?.currentBet || 0) - (getMyPlayer(game)?.currentBet || 0) }
+								Call £{ (getOpponent(game)?.currentBet || 0) - (getMyPlayer(game)?.currentBet || 0) }
 							</button>
 						{/if}
 
 						<div class="bet-section">
 							<button class="btn btn-primary bet-btn-small" onclick={() => doAction('bet', betAmount)}>
-								Bet {betAmount}
+								Bet £{betAmount}
 							</button>
 							<div class="slider-container">
 								<input 
@@ -469,8 +469,8 @@
 									class="big-slider"
 								/>
 								<div class="slider-labels">
-									<span>{minBet}</span>
-									<span>{maxBet}</span>
+									<span>£{minBet}</span>
+									<span>£{maxBet}</span>
 								</div>
 							</div>
 						</div>

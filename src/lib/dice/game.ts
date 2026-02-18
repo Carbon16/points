@@ -48,6 +48,16 @@ export function createGame(p1Id: string, p1Name: string, p2Id: string, p2Name: s
     };
 }
 
+export function joinGame(game: DiceGameState, playerId: string, playerName: string): DiceGameState {
+    if (game.players[1].id !== 'waiting') throw new Error('Game full');
+    game.players[1].id = playerId;
+    game.players[1].name = playerName;
+    
+    deductAnte(game);
+    
+    return game;
+}
+
 function rollHand(): DiceFace[] {
     return Array.from({ length: 5 }, () => (Math.floor(Math.random() * 6) + 1) as DiceFace);
 }

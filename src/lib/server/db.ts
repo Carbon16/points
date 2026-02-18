@@ -4,8 +4,8 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Use environment variable for production, fallback to relative path for dev
-const DB_PATH = process.env.DATABASE_PATH || path.resolve(__dirname, '../../../../data/points.db');
+// Use environment variable for production, fallback to local data dir
+const DB_PATH = process.env.DATABASE_PATH || path.resolve(process.cwd(), 'data/points.db');
 
 let db: Database.Database | null = null;
 
