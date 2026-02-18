@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { verifyToken } from '$lib/server/auth';
+import { verifyToken, getUserName } from '$lib/server/auth';
 import { createGame, performAction, startNextHand, getPlayerView, isGameOver, joinGame } from '$lib/poker/game';
 import { addBlock } from '$lib/blockchain/chain';
 import { getDb, saveGameAction } from '$lib/server/db';
@@ -115,7 +115,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		if (!game) return json({ success: false, error: 'No game' }, { status: 400 });
 
 		try {
-			joinGame(game, user.userId, user.name);
+			const dbName = getUserName(user.userId);
+			joinGame(game, user.userId, dbName || user.name);
 			saveGame(game);
 			return json({ success: true, data: getPlayerView(game, user.userId) });
 		} catch (err) {
@@ -131,7 +132,9 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 
-		const game = createGame(user.userId, user.name, 'waiting', 'Waiting...', playForPoints ?? true);
+
+		const dbName = getUserName(user.userId);
+		const game = createGame(user.userId, dbName || user.name, 'waiting', 'Waiting...', playForPoints ?? true);
 		// Phase is 'waiting' by default now
 		saveGame(game);
 

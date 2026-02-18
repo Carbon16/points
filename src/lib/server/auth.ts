@@ -89,3 +89,9 @@ export function isSetup(userId: string): boolean {
 	const row = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
 	return !!row;
 }
+
+export function getUserName(userId: string): string | null {
+    const db = getDb();
+    const row = db.prepare('SELECT name FROM users WHERE id = ?').get(userId) as { name: string } | undefined;
+    return row?.name || null;
+}
