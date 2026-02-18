@@ -85,13 +85,33 @@ export async function POST({ request, cookies }) {
     }
 }
 
-export function GET({ url }) {
+export async function GET({ url, request, cookies }) {
+    // Auth Check
+    const token = cookies.get('token');
+    const authHeader = request.headers.get('Authorization');
+    const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const actualToken = headerToken || token;
+
+    let userId: string | null = null;
+    if (actualToken) {
+        const decoded = verifyToken(actualToken);
+        if (decoded) userId = decoded.userId;
+    }
+
     const id = url.searchParams.get('id');
     if (id) {
         return json(games.get(id) || null);
     }
-    // List waiting games?
-    // Filter games where player 2 is 'waiting'
+
+    // Auto-join: Check if user is already in a game
+    if (userId) {
+        const activeGame = Array.from(games.values()).find(g => g.players.some(p => p.id === userId));
+        if (activeGame) {
+            return json({ type: 'game', game: activeGame });
+        }
+    }
+
+    // List waiting games
     const waiting = Array.from(games.values()).filter(g => g.players[1].id === 'waiting');
-    return json(waiting);
+    return json({ type: 'lobby', games: waiting });
 }

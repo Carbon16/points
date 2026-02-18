@@ -15,21 +15,47 @@
     let selectedStakes = $state<Stakes>('full');
     let waitingGames = $state<any[]>([]);
 
+    onMount(() => {
+        loadGame();
+        startPolling();
+    });
+
+    onDestroy(() => {
+        if (pollingInterval) clearInterval(pollingInterval);
+    });
+
     async function loadGame() {
         if (!$auth.token) return;
         const headers = getAuthHeaders($auth.token);
         
-        if (!game?.id) {
-            // Check for existing/waiting games
+        try {
+            // Hit the main endpoint which now handles auto-join logic
             const res = await fetch('/api/dice', { headers });
             const data = await res.json();
-            if (Array.isArray(data)) {
-                waitingGames = data;
+            
+            if (data.type === 'game') {
+                game = data.game;
+                waitingGames = []; 
+            } else if (data.type === 'lobby') {
+                // If we were in a game and now we are not, game over?
+                if (game && !data.games.find((g: any) => g.id === game?.id)) {
+                    // Check if current game still exists by ID or if we should just clear
+                    // For now, if API says we are in lobby, we are in lobby.
+                    game = null; 
+                }
+                waitingGames = data.games;
+            } else if (Array.isArray(data)) {
+                 // Fallback for old API response (shouldn't happen with new server)
+                 waitingGames = data;
             }
-        } else {
-             const res = await fetch(`/api/dice?id=${game.id}`, { headers });
-             game = await res.json();
+        } catch (e) {
+            console.error('Polling error', e);
         }
+    }
+
+    function startPolling() {
+        if (pollingInterval) clearInterval(pollingInterval);
+        pollingInterval = setInterval(loadGame, 1000);
     }
 
     async function createGame() {
@@ -41,8 +67,7 @@
         });
         const data = await res.json();
         if (data.success) {
-            game = data.game;
-            startPolling();
+            loadGame(); // Instant update
         }
     }
 
@@ -55,8 +80,7 @@
         });
         const data = await res.json();
         if (data.success) {
-            game = data.game;
-            startPolling();
+            loadGame(); // Instant update
         }
     }
 
@@ -108,22 +132,7 @@
         if (bidQuantity > 1) bidQuantity--;
     }
 
-    function startPolling() {
-        if (pollingInterval) clearInterval(pollingInterval);
-        pollingInterval = setInterval(async () => {
-            if (game?.id && $auth.token) {
-                const res = await fetch(`/api/dice?id=${game.id}`, { 
-                    headers: getAuthHeaders($auth.token) 
-                });
-                const updated = await res.json();
-                if (updated && updated.id) game = updated;
-            }
-        }, 1000);
-    }
-    
-    onDestroy(() => {
-        if (pollingInterval) clearInterval(pollingInterval);
-    });
+    // Old startPolling removed, main polling is now handled by loadGame via onMount
 
     // Helper for Dice Icons
     function getDiceIcon(face: number) {
@@ -217,7 +226,7 @@
                 <div class="controls">
                     <div class="bid-row">
                         <div class="bid-group">
-                            <label>Count</label>
+                            <span class="label-text">Count</span>
                             <div class="stepper">
                                 <button class="step-btn" onclick={decQty}>−</button>
                                 <span class="step-value">{bidQuantity}</span>
@@ -226,17 +235,17 @@
                         </div>
                         
                         <div class="bid-group">
-                            <label>Face</label>
+                            <span class="label-text">Face</span>
                             <button class="face-btn" onclick={cycleFace}>
                                 {getDiceIcon(bidFace)}
                             </button>
                         </div>
 
                         <div class="bid-group grow">
-                            <label>Raise Chips</label>
+                            <label for="raise-amount">Raise Chips</label>
                             <div class="chip-input">
                                 <span>£</span>
-                                <input type="number" min="10" step="10" bind:value={raiseAmount} />
+                                <input id="raise-amount" type="number" min="10" step="10" bind:value={raiseAmount} />
                             </div>
                         </div>
                     </div>
@@ -273,11 +282,13 @@
     }
     .bid-group.grow { flex: 1;    align-items: stretch; min-width: 0; }
 
-    .bid-group label {
+    .bid-group label, .bid-group .label-text {
         font-size: 0.7rem;
         text-transform: uppercase;
         color: var(--text-secondary);
         letter-spacing: 0.1em;
+        display: block;
+        margin-bottom: 8px;
     }
 
     .stepper {
