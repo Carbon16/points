@@ -162,7 +162,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		await notifyOtherUser(user.userId, {
 			title: 'Poker??',
 			body: `${user.name} wants to play poker!`,
-			url: '/poker'
+			url: '/casino/poker'
 		});
 
 		return json({ success: true, data: getPlayerView(game, user.userId) });

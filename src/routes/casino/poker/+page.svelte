@@ -36,6 +36,8 @@
 		if (pollInterval) clearInterval(pollInterval);
 	});
 
+	let lastSavedHandId = '';
+
 	async function loadGame() {
 		try {
 			const res = await fetch('/api/game', { headers: getAuthHeaders($auth.token!) });
@@ -56,7 +58,6 @@
 					hasTriggeredShowdown = false;
 				}
 
-				// Auto-Trigger Showdown
 				if (game && game.phase === 'showdown' && !hasTriggeredShowdown) {
 					console.log('--- CLIENT SHOWDOWN STATE ---', game);
 					console.log('Winner:', game.winner);
@@ -64,6 +65,8 @@
 					hasTriggeredShowdown = true;
 					nextHandTimer = 3000; // 3 seconds delay
 				}
+
+				checkAndSaveHand(game);
 			}
 		} catch { /* polling, ignore */ }
 		loading = false;
@@ -164,9 +167,24 @@
 				game = dataRes.data;
 			}
 			loadGame(); // Refresh state immediately after action
+			checkAndSaveHand(game);
 		} catch {
 			error = 'Connection failed';
 		}
+	}
+
+	function checkAndSaveHand(g: GameState | null) {
+		if (!g || !g.winner) return;
+		// If playing for points is disabled, do we save? Maybe yes for history? But playForPoints flag controls it.
+		if (g.playForPoints === false) return;
+
+		// Prevent duplicate saves
+		if (g.currentHandId === lastSavedHandId) return;
+
+		// Save it
+		console.log('Detected Hand End. Saving History...', g.currentHandId);
+		lastSavedHandId = g.currentHandId || '';
+		saveHandHistory(g, g.winner);
 	}
 
 	function handleAction(action: string, data?: any) {

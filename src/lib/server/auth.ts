@@ -46,8 +46,8 @@ export function setupUser(userId: string, pin: string, publicKey?: string, encry
 
 export function login(userId: string, pin: string, publicKey?: string, encryptedPrivateKey?: string): { token: string; name: string; encryptedPrivateKey?: string } | null {
 	const db = getDb();
-	const row = db.prepare('SELECT pin_hash, name, encrypted_private_key FROM users WHERE id = ?').get(userId) as
-		| { pin_hash: string; name: string; encrypted_private_key: string | null }
+	const row = db.prepare('SELECT pin_hash, name, public_key, encrypted_private_key FROM users WHERE id = ?').get(userId) as
+		| { pin_hash: string; name: string; public_key: string | null; encrypted_private_key: string | null }
 		| undefined;
 
 	if (!row) {
@@ -63,10 +63,11 @@ export function login(userId: string, pin: string, publicKey?: string, encrypted
 
 	if (row.pin_hash !== hashPin(pin)) return null;
 
-	// If user exists but keys are missing, update them
+	// If user exists and provides new keys (e.g. re-login with new specific device key), update them.
+	// We trust the PIN authentication.
 	if (publicKey || encryptedPrivateKey) {
-		db.prepare('UPDATE users SET public_key = COALESCE(public_key, ?), encrypted_private_key = COALESCE(encrypted_private_key, ?) WHERE id = ?')
-			.run(publicKey || null, encryptedPrivateKey || null, userId);
+		db.prepare('UPDATE users SET public_key = ?, encrypted_private_key = ? WHERE id = ?')
+			.run(publicKey || row.public_key, encryptedPrivateKey || row.encrypted_private_key, userId);
 	}
 
 	return {
