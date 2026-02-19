@@ -19,6 +19,7 @@
 	let pendingAction = $state<{ type: string; data?: any } | null>(null);
 	let nextHandTimer = $state(0);
 	let hasTriggeredShowdown = false;
+	let pollInterval: ReturnType<typeof setInterval>;
 
 	onMount(async () => {
 		if (!$auth.token) { goto('/login'); return; }
@@ -57,6 +58,8 @@
 
 				// Auto-Trigger Showdown
 				if (game && game.phase === 'showdown' && !hasTriggeredShowdown) {
+					console.log('--- CLIENT SHOWDOWN STATE ---', game);
+					console.log('Winner:', game.winner);
 					revealShowdown = true;
 					hasTriggeredShowdown = true;
 					nextHandTimer = 3000; // 3 seconds delay

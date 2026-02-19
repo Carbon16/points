@@ -64,6 +64,7 @@ export function evaluateHand(cards: Card[]): HandEvaluation {
 
 	const flush = isFlush(cards);
 	const { straight, highCard: straightHigh } = isStraight(cards);
+	const values = cards.map((c) => getRankValue(c.rank)).sort((a, b) => b - a);
 	const counts = getCounts(cards);
 
 	const countEntries = Array.from(counts.entries()).sort((a, b) => {
@@ -86,18 +87,23 @@ export function evaluateHand(cards: Card[]): HandEvaluation {
 	// Four of a Kind
 	if (countEntries[0][1] === 4) {
 		const fourRank = countEntries[0][0];
+		const kickers = values.filter(v => v !== fourRank);
 		const core = cards.filter(c => getRankValue(c.rank) === fourRank);
-		return { rank: 'four-of-a-kind', rankValue: 7, highCards, description: `Four of a Kind (${countEntries[0][0]}s)`, cards, coreCards: core };
+		return { rank: 'four-of-a-kind', rankValue: 7, highCards: [fourRank, ...kickers], description: `Four of a Kind (${countEntries[0][0]}s)`, cards, coreCards: core };
 	}
 
 	// Full House
 	if (countEntries[0][1] === 3 && countEntries[1][1] === 2) {
-		return { rank: 'full-house', rankValue: 6, highCards, description: `Full House (${countEntries[0][0]}s over ${countEntries[1][0]}s)`, cards, coreCards: cards };
+		const threeRank = countEntries[0][0];
+		const twoRank = countEntries[1][0];
+		// No kickers needed for full house comparisons (3+2=5 cards)
+		return { rank: 'full-house', rankValue: 6, highCards: [threeRank, twoRank], description: `Full House (${countEntries[0][0]}s over ${countEntries[1][0]}s)`, cards, coreCards: cards };
 	}
 
 	// Flush
 	if (flush) {
-		return { rank: 'flush', rankValue: 5, highCards, description: 'Flush', cards, coreCards: cards };
+		// All 5 cards matter for flush comparison
+		return { rank: 'flush', rankValue: 5, highCards: values, description: 'Flush', cards, coreCards: cards };
 	}
 
 	// Straight
@@ -108,29 +114,33 @@ export function evaluateHand(cards: Card[]): HandEvaluation {
 	// Three of a Kind
 	if (countEntries[0][1] === 3) {
 		const tripRank = countEntries[0][0];
+		const kickers = values.filter(v => v !== tripRank);
 		const core = cards.filter(c => getRankValue(c.rank) === tripRank);
-		return { rank: 'three-of-a-kind', rankValue: 3, highCards, description: `Three of a Kind (${countEntries[0][0]}s)`, cards, coreCards: core };
+		return { rank: 'three-of-a-kind', rankValue: 3, highCards: [tripRank, ...kickers], description: `Three of a Kind (${countEntries[0][0]}s)`, cards, coreCards: core };
 	}
 
 	// Two Pair
 	if (countEntries[0][1] === 2 && countEntries[1][1] === 2) {
 		const rank1 = countEntries[0][0];
 		const rank2 = countEntries[1][0];
+		const kickers = values.filter(v => v !== rank1 && v !== rank2);
 		const core = cards.filter(c => getRankValue(c.rank) === rank1 || getRankValue(c.rank) === rank2);
-		return { rank: 'two-pair', rankValue: 2, highCards, description: `Two Pair (${countEntries[0][0]}s and ${countEntries[1][0]}s)`, cards, coreCards: core };
+		return { rank: 'two-pair', rankValue: 2, highCards: [rank1, rank2, ...kickers], description: `Two Pair (${countEntries[0][0]}s and ${countEntries[1][0]}s)`, cards, coreCards: core };
 	}
 
 	// Pair
 	if (countEntries[0][1] === 2) {
 		const pairRank = countEntries[0][0];
+		const kickers = values.filter(v => v !== pairRank);
 		const core = cards.filter(c => getRankValue(c.rank) === pairRank);
-		return { rank: 'pair', rankValue: 1, highCards, description: `Pair of ${countEntries[0][0]}s`, cards, coreCards: core };
+		return { rank: 'pair', rankValue: 1, highCards: [pairRank, ...kickers], description: `Pair of ${countEntries[0][0]}s`, cards, coreCards: core };
 	}
 
 	// High Card
+	// highCards already contains sorted values
 	const highRank = highCards[0];
 	const core = cards.filter(c => getRankValue(c.rank) === highRank).slice(0,1);
-	return { rank: 'high-card', rankValue: 0, highCards, description: `High Card (${highCards[0]})`, cards, coreCards: core };
+	return { rank: 'high-card', rankValue: 0, highCards: values, description: `High Card (${highCards[0]})`, cards, coreCards: core };
 }
 
 export function compareHands(hand1: HandEvaluation, hand2: HandEvaluation): number {

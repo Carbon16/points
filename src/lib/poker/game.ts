@@ -5,7 +5,7 @@ import { bestHand, compareHands } from './hand';
 const SUITS: Suit[] = ['hearts', 'diamonds', 'clubs', 'spades'];
 const RANKS: Rank[] = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 
-function createDeck(): Card[] {
+export function createDeck(): Card[] {
 	const deck: Card[] = [];
 	for (const suit of SUITS) {
 		for (const rank of RANKS) {
@@ -206,26 +206,41 @@ export function performAction(game: GameState, playerId: string, action: PlayerA
 		
 		const isLastToAct = isPreFlop ? !isDealer : isDealer;
 
-		// 1. If bets are equal and NON-ZERO:
+		// 1. If bets are equal and NON-ZERO (Call):
 		if (player.currentBet > 0) {
-			// Exception: Pre-Flop, if SB calls (bets equal), BB still has option to Raise.
-			// The only way bets are equal > 0 pre-flop is if SB called the BB (or BB raised and SB called).
-			// If SB just Called (matched BB), BB is next. BB has NOT acted yet in this equilibrium.
-			// But wait, we need to track "who acted last"? No.
+			// NEW LOGIC: Calling does not end the round. It resets the "to call" amount to 0
+			// and requires both players to Check to proceed.
 			
-			// Simple heuristic for Heads Up Pre-Flop:
-			// If it's Pre-Flop, and bets are equal, AND the player who just acted is the SB (Dealer), 
-			// then the BB *must* have a chance to act (Check or Raise).
+			// Exception: Pre-Flop, if SB calls the Big Blind (limp), BB still has option.
+			// Standard rules: SB calls -> BB option.
+			// Our new rule: SB calls -> Bets cleared -> BB turn?
+			// If we stick to standard pre-flop: SB Call -> BB Option (Check/Raise).
+			// If BB Checks -> Round Over.
+			// If BB Raises -> ...
 			
-			if (isPreFlop && player.isDealer) {
-				// SB Just acted (Called). Bets are equal. Turn goes to BB.
-				// Do NOT advance round.
-				game.currentPlayerIndex = 1 - game.currentPlayerIndex;
-				return game;
-			}
+			// Does the user want "Check-Check" even for pre-flop limp?
+			// "both users must CHECK (not raise then check) in a row".
+			// Likely yes. 
 			
-			// Otherwise (Pre-flop BB acted, or Post-flop Dealer acted), the round is over.
-			advanceRound(game);
+			// For Post-Flop calls: 
+			// P1 bets, P2 calls. -> Bets cleared. P1 turn. P1 Check. P2 Check. -> Next street.
+			
+			// Collect bets to pot (already done in betting actions? No, performAction logic updates chips/pot incrementally
+			// but we usually collect/reset at end of round).
+			// Here we are "soft resetting" the round state without advancing street.
+			
+			// NOTE: 'game.pot' tracks total pot. 'currentBet' tracks current street contribution.
+			// We usually leave currentBet until round end.
+			// But if we want to simulate "0 bets", we must clear them.
+			
+			// However, if we clear currentBet, we lose track of who committed what for "All-in" or other logic?
+			// No, pot has it.
+			
+			player.currentBet = 0;
+			opponent.currentBet = 0;
+			
+			// Switch turn back to the other player (the one who bet first)
+			game.currentPlayerIndex = 1 - game.currentPlayerIndex;
 			return game;
 		}
 
