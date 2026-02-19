@@ -205,9 +205,13 @@
         <div class="opponent-area">
             <div class="avatar">👤 {game.players.find(p => p.id !== $auth.userId)?.name || 'Opponent'}</div>
             <div class="stats">Chips: {game.players.find(p => p.id !== $auth.userId)?.chips}</div>
-            <div class="cup">
+             <div class="cup">
                 {#each game.players.find(p => p.id !== $auth.userId)?.hand || [] as d}
-                   <span class="die hidden">?</span>
+                   {#if game.phase === 'round-over' || game.phase === 'complete'}
+                        <span class="die" class:highlight={game.currentBid && (d === game.currentBid.face || d === 1)}>{getDiceIcon(d)}</span>
+                   {:else}
+                        <span class="die hidden">?</span>
+                   {/if}
                 {/each}
             </div>
         </div>
@@ -252,7 +256,7 @@
              <div class="stats">Chips: {game.players.find(p => p.id === $auth.userId)?.chips}</div>
              <div class="cup">
                 {#each game.players.find(p => p.id === $auth.userId)?.hand || [] as d}
-                   <span class="die">{getDiceIcon(d)}</span>
+                   <span class="die" class:highlight={game.currentBid && (d === game.currentBid.face || d === 1)}>{getDiceIcon(d)}</span>
                 {/each}
             </div>
             
@@ -401,6 +405,7 @@
     /* Check previous CSS block to ensure validity */
     .dice-container {
         padding: 20px;
+        padding-bottom: 250px; /* Prevent controls from covering dice */
         max-width: 600px;
         margin: 0 auto;
         color: white;
@@ -409,6 +414,14 @@
         flex-direction: column;
     }
     
+    .die.highlight {
+        background: #ffd700;
+        transform: scale(1.1);
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+        border: 2px solid #b8860b;
+        z-index: 10;
+    }
+
     .lobby {
         text-align: center;
         margin-top: 50px;

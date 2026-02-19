@@ -17,12 +17,18 @@
 	let revealShowdown = $state(false);
 	let gameOverInfo = $state<{ winner?: string; loser?: string } | null>(null);
 	let pendingAction = $state<{ type: string; data?: any } | null>(null);
-	let pollInterval: ReturnType<typeof setInterval>;
+	let nextHandTimer = $state(0);
+	let hasTriggeredShowdown = false;
 
 	onMount(async () => {
 		if (!$auth.token) { goto('/login'); return; }
 		await loadGame();
 		pollInterval = setInterval(loadGame, 1000);
+		
+		// Timer tick
+		setInterval(() => {
+			if (nextHandTimer > 0) nextHandTimer -= 100;
+		}, 100);
 	});
 
 	onDestroy(() => {
@@ -46,6 +52,14 @@
 				// Auto-reset reveal state when hand resets or moves to betting
 				if (game && oldPhase !== 'showdown' && game.phase !== 'showdown') {
 					revealShowdown = false;
+					hasTriggeredShowdown = false;
+				}
+
+				// Auto-Trigger Showdown
+				if (game && game.phase === 'showdown' && !hasTriggeredShowdown) {
+					revealShowdown = true;
+					hasTriggeredShowdown = true;
+					nextHandTimer = 3000; // 3 seconds delay
 				}
 			}
 		} catch { /* polling, ignore */ }
@@ -514,27 +528,25 @@
 				</div>
 			{:else if game.phase === 'showdown'}
 				<div class="showdown-bar" in:scale>
-					{#if !revealShowdown}
-						<div class="showdown-content">
-							<p class="showdown-text">The cards are on the table...</p>
-							<button class="btn btn-primary lg" onclick={() => revealShowdown = true}>
-								Show Result
-							</button>
-						</div>
-					{:else}
-						<div class="showdown-content">
-							<p class="showdown-text" in:fly={{ y: -20, duration: 400 }}>
-								{#if game.winner}
-									{getName(game.winner)} wins!
-								{:else}
-									Split pot!
-								{/if}
-							</p>
-							{#if game.winReason}
-								<p class="win-reason" in:fly={{ y: -20, delay: 200, duration: 400 }}>{game.winReason}</p>
+					<div class="showdown-content">
+						<p class="showdown-text" in:fly={{ y: -20, duration: 400 }}>
+							{#if game.winner}
+								{getName(game.winner)} wins!
+							{:else}
+								Split pot!
 							{/if}
-						</div>
-						<button class="btn btn-primary" in:fly={{ y: 20, delay: 600 }} onclick={() => doAction('next-hand')}>
+						</p>
+						{#if game.winReason}
+							<p class="win-reason" in:fly={{ y: -20, delay: 200, duration: 400 }}>{game.winReason}</p>
+						{/if}
+					</div>
+					
+					{#if nextHandTimer > 0}
+						<button class="btn btn-secondary disabled" disabled>
+							Next Hand in {Math.ceil(nextHandTimer / 1000)}s...
+						</button>
+					{:else}
+						<button class="btn btn-primary" in:fly={{ y: 20 }} onclick={() => doAction('next-hand')}>
 							Next Hand →
 						</button>
 					{/if}
