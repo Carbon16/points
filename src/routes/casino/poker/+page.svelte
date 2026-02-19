@@ -204,6 +204,8 @@
 		pendingAction = null;
 	}
 
+	let currentHistoryId = $state(''); // The DB ID of the current/last hand
+
 	async function saveHandHistory(finalGame: GameState, winnerId: string) {
 		try {
 			const pk = await GetPrivateKey();
@@ -224,7 +226,7 @@
 			const dataStr = JSON.stringify(record);
 			const signature = await signData(pk, dataStr);
 
-			await fetch('/api/hands', {
+			const res = await fetch('/api/hands', {
 				method: 'POST',
 				headers: { ...getAuthHeaders($auth.token!), 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -234,24 +236,31 @@
 					timestamp: record.timestamp
 				})
 			});
-			console.log('Hand history signed and saved');
+			const data = await res.json();
+			if (data.success && data.data?.id) {
+				currentHistoryId = data.data.id;
+				console.log('Hand history saved with ID:', currentHistoryId);
+			}
 		} catch (e) {
 			console.error('Failed to save hand history', e);
 		}
 	}
 
-	async function flagHand(handId?: string) {
-		if (!handId) return;
+	async function flagHand() {
+		if (!currentHistoryId) {
+			error = 'No hand history found to flag';
+			return;
+		}
 		try {
 			const res = await fetch('/api/hands', {
 				method: 'PATCH',
 				headers: { ...getAuthHeaders($auth.token!), 'Content-Type': 'application/json' },
-				body: JSON.stringify({ handId })
+				body: JSON.stringify({ handId: currentHistoryId })
 			});
 			const data = await res.json();
 			if (data.success) {
-				error = 'Hand flagged for review'; // Using error toast for feedback, maybe change to success toast?
-				// Or simple alert.
+				// Use a more positive feedback or toast here if available, reusing error for now as toast
+				error = 'Hand flagged successfully'; 
 			} else {
 				error = data.error || 'Failed to flag hand';
 			}
@@ -581,7 +590,7 @@
 						{/if}
 						
 						<!-- Flag Hand Button -->
-						<button class="btn btn-ghost flag-btn" onclick={() => flagHand(game?.currentHandId)} title="Flag for Review">
+						<button class="btn btn-ghost flag-btn" onclick={() => flagHand()} title="Flag for Review">
 							<ion-icon name="flag-outline"></ion-icon> Flag
 						</button>
 					</div>
