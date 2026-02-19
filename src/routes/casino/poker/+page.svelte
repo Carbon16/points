@@ -156,7 +156,7 @@
 			if (dataRes.data?.gameOver) {
 				const finalGame = game || dataRes.data.game;
 				const winnerId = dataRes.data.winner;
-				if (finalGame && finalGame.playForPoints !== false) {
+				if (finalGame) {
 					saveHandHistory(finalGame, winnerId);
 				}
 				gameOverInfo = { winner: dataRes.data.winner, loser: dataRes.data.loser };
@@ -175,9 +175,7 @@
 
 	function checkAndSaveHand(g: GameState | null) {
 		if (!g || !g.winner) return;
-		// If playing for points is disabled, do we save? Maybe yes for history? But playForPoints flag controls it.
-		if (g.playForPoints === false) return;
-
+		
 		// Prevent duplicate saves
 		if (g.currentHandId === lastSavedHandId) return;
 
@@ -214,6 +212,7 @@
 			const record = {
 				gameId: crypto.randomUUID(), // unique ID for this hand record
 				handNumber: finalGame.handNumber,
+				mode: finalGame.playForPoints ? 'ranked' : 'practice',
 				myHand: getMyPlayer(finalGame)?.hand,
 				opponentHand: getOpponent(finalGame)?.hand, // might be visible if showdown
 				community: finalGame.communityCards,
