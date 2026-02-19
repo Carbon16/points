@@ -139,15 +139,16 @@ export const POST: RequestHandler = async ({ request }) => {
 	// Create new game
 	if (action === 'create') {
 		const existing = loadGame();
-		if (existing && existing.phase !== 'complete') {
-			return json({ success: false, error: 'Game already in progress' }, { status: 400 });
+		// If game exists and is NOT complete/over, prevents creating new one.
+		if (existing) {
+			const { over } = isGameOver(existing);
+			if (!over && existing.phase !== 'complete') {
+				return json({ success: false, error: 'Game already in progress' }, { status: 400 });
+			}
 		}
-
-
 
 		const dbName = getUserName(user.userId);
 		const game = createGame(user.userId, dbName || user.name, 'waiting', 'Waiting...', playForPoints ?? true);
-		// Phase is 'waiting' by default now
 		saveGame(game);
 
 		await notifyOtherUser(user.userId, {
@@ -163,6 +164,13 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (action === 'next-hand') {
 		let game = loadGame();
 		if (!game) return json({ success: false, error: 'No game' }, { status: 400 });
+
+		// CRITICAL FIX: Race Condition Graceful Handling
+		// If phase is betting or dealing, the hand is already active. 
+		// Instead of erroring, just return the current state (User B catches up to User A).
+		if (game.phase !== 'showdown' && game.phase !== 'complete' && game.phase !== 'waiting') {
+			return json({ success: true, data: getPlayerView(game, user.userId) });
+		}
 
 		const { over, winner, loser } = isGameOver(game);
 		if (over) {
@@ -195,15 +203,14 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	// Player action
 	if (['check', 'bet', 'call', 'raise', 'fold', 'all-in', 'start'].includes(action)) {
-		const game = loadGame();
+		let game = loadGame();
 		if (!game) return json({ success: false, error: 'No game' }, { status: 400 });
 
 		try {
-			performAction(game, user.userId, action, amount);
+			performAction(game, user.userId, action, amount, body.handId);
 			saveGame(game);
 
 			const { over, winner, loser } = isGameOver(game);
-			// Do not trigger the game-over screen if we just moved to showdown
 			const reportOver = over && game.phase !== 'showdown';
 			const view = getPlayerView(game, user.userId);
 
@@ -217,10 +224,39 @@ export const POST: RequestHandler = async ({ request }) => {
 				}
 			});
 		} catch (err) {
-			return json({
-				success: false,
-				error: err instanceof Error ? err.message : 'Invalid action'
-			}, { status: 400 });
+			const msg = err instanceof Error ? err.message : 'Invalid action';
+			
+			// 1. Hand Mismatch (Sync Error) -> Return current state to re-sync client
+			if (msg.includes('Hand mismatch')) {
+				return json({ 
+					success: true, 
+					data: { game: getPlayerView(game, user.userId) },
+					info: 'Game state updated' 
+				});
+			}
+
+			// 2. Input/Logic Errors (User fault) -> Return error
+			if (msg.includes('Invalid amount') || msg.includes('chips') || msg.includes('turn')) {
+				return json({ success: false, error: msg }, { status: 400 });
+			}
+
+			// 3. Unknown/System/Corruption Errors -> Restart Hand (Recovery)
+			console.error(`Poker Game Error (${action}):`, err);
+			
+			// Attempt to restart hand to unblock
+			try {
+				game = startNextHand(game);
+				saveGame(game);
+				
+				// Notify failure but recovery
+				return json({
+					success: true,
+					data: { game: getPlayerView(game, user.userId) },
+					error: 'Game error detected. Hand has been restarted.'
+				});
+			} catch (restartErr) {
+				return json({ success: false, error: 'Critical Game Error' }, { status: 500 });
+			}
 		}
 	}
 

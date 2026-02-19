@@ -85,7 +85,7 @@ export function joinGame(game: GameState, playerId: string, playerName: string):
 	return game;
 }
 
-export function performAction(game: GameState, playerId: string, action: PlayerAction | 'start', amount?: number): GameState {
+export function performAction(game: GameState, playerId: string, action: PlayerAction | 'start', amount?: number, handId?: string): GameState {
 	const playerIndex = game.players.findIndex((p) => p.id === playerId);
 	if (playerIndex === -1) throw new Error('Player not in game');
 	
@@ -101,8 +101,20 @@ export function performAction(game: GameState, playerId: string, action: PlayerA
 		return startNextHand(game);
 	}
 
+	// Integrity Check: Hand ID
+	if (handId && game.currentHandId && handId !== game.currentHandId) {
+		throw new Error('Hand mismatch - Please refresh');
+	}
+
 	if (playerIndex !== game.currentPlayerIndex) throw new Error('Not your turn');
 	if (game.phase === 'complete' || game.phase === 'waiting') throw new Error('Game not in play');
+
+	// Input Validation
+	if (amount !== undefined) {
+		if (isNaN(amount) || amount < 0 || !Number.isInteger(amount)) {
+			throw new Error('Invalid amount');
+		}
+	}
 
 	const player = game.players[playerIndex];
 	const opponent = game.players[1 - playerIndex];
@@ -189,35 +201,47 @@ export function performAction(game: GameState, playerId: string, action: PlayerA
 	const isPreFlop = game.round === 0;
 	if (player.currentBet === opponent.currentBet) {
 		const isDealer = player.isDealer;
+		// Heads Up Pre-Flop: Dealer is SB (Acts First). Opponent is BB (Acts Second).
+		// Post-Flop: BB (Acts First). Dealer (Acts Second).
+		
 		const isLastToAct = isPreFlop ? !isDealer : isDealer;
 
-		// If bets are non-zero and equal, the pot is right => advance
-		// (In heads-up, if I call a bet, we are done. If I raise, they aren't equal.)
+		// 1. If bets are equal and NON-ZERO:
 		if (player.currentBet > 0) {
+			// Exception: Pre-Flop, if SB calls (bets equal), BB still has option to Raise.
+			// The only way bets are equal > 0 pre-flop is if SB called the BB (or BB raised and SB called).
+			// If SB just Called (matched BB), BB is next. BB has NOT acted yet in this equilibrium.
+			// But wait, we need to track "who acted last"? No.
+			
+			// Simple heuristic for Heads Up Pre-Flop:
+			// If it's Pre-Flop, and bets are equal, AND the player who just acted is the SB (Dealer), 
+			// then the BB *must* have a chance to act (Check or Raise).
+			
+			if (isPreFlop && player.isDealer) {
+				// SB Just acted (Called). Bets are equal. Turn goes to BB.
+				// Do NOT advance round.
+				game.currentPlayerIndex = 1 - game.currentPlayerIndex;
+				return game;
+			}
+			
+			// Otherwise (Pre-flop BB acted, or Post-flop Dealer acted), the round is over.
 			advanceRound(game);
 			return game;
 		}
 
-		// If bets are zero (check-check), only advance if I am last to act
-		if (player.currentBet === 0 && isLastToAct) {
-			advanceRound(game);
+		// 2. If bets are zero (Check-Check):
+		// This can only happen Post-Flop (Ante ensures pre-flop is never 0-0).
+		// If Player is First to Act (BB post-flop), and checks -> Turn to Dealer.
+		// If Player is Last to Act (Dealer post-flop), and checks -> Round Over.
+		if (player.currentBet === 0) {
+			if (isLastToAct) {
+				advanceRound(game);
+			} else {
+				// Switch turn
+				game.currentPlayerIndex = 1 - game.currentPlayerIndex;
+			}
 			return game;
 		}
-
-		// Otherwise (e.g. Dealer checked pre-flop? No, dealer is SB. 
-		// If Dealer checks pre-flop (limp), bets are equal (5=5). Dealer acted. Last to act is BB. 
-		// wait, if Dealer calls (5), bets are equal. Dealer is NOT last to act preflop. Round continues. Correct.
-		// If BB checks. Bets equal. BB IS last to act preflop. Round advances. Correct.
-		
-		// What about Post-Flop?
-		// BB (First) Checks (0). Bets equal. BB !LastToAct. Round continues.
-		// Dealer (Last) Checks (0). Bets equal. Dealer IsLastToAct. Round advances. Correct.
-		
-		// The previous bug was:
-		// Post-Flop: BB Checks. Dealer Bets. BB Calls.
-		// Player is BB. Bets Equal (>0). 
-		// Logic was: BB !LastToAct => Round Continues. (WRONG)
-		// New Logic: Bets > 0 => Round Advances. (CORRECT)
 	}
 
 	game.currentPlayerIndex = 1 - game.currentPlayerIndex;
@@ -336,6 +360,7 @@ export function startNextHand(game: GameState): GameState {
 	game.winner = undefined;
 	game.winReason = undefined; 
 	game.winningCards = undefined;
+	game.currentHandId = crypto.randomUUID(); // Unique ID for this specific hand
 	
 	// Ante: Each player buys in with 5 chips minimum
 	const anteAmount = 5;

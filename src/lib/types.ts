@@ -74,6 +74,7 @@ export interface GameState {
 	winReason?: string; // e.g., "with a Flush" or "opponent folded"
 	winningCards?: Card[];
 	handNumber: number;
+	currentHandId?: string; // Unique ID for the current specific deal/hand
 	playForPoints: boolean;
 }
 

@@ -166,6 +166,9 @@ export async function POST({ request, cookies }) {
         const selection: Record<string, string[]> = {};
 
         for (const [type, qty] of Object.entries(quantities) as [string, number][]) {
+            if (typeof qty !== 'number' || !Number.isInteger(qty) || qty < 0) {
+                 return json({ error: `Invalid quantity for ${type}` }, { status: 400 });
+            }
             if (qty <= 0) continue;
             const config = manifest[type];
             if (!config) return json({ error: `Invalid type: ${type}` }, { status: 400 });

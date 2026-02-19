@@ -89,6 +89,7 @@
 		const securePayload = {
 			gameId: game.id,
 			handNumber: game.handNumber,
+			handId: game.currentHandId,
 			userId: $auth.userId,
 			action,
 			amount: payloadData?.amount,
@@ -112,6 +113,7 @@
 				headers: { ...getAuthHeaders($auth.token!), 'Content-Type': 'application/json' },
 				body: JSON.stringify({ 
 					action, 
+					handId: game.currentHandId,
 					...payloadData,
 					security: {
 						payload: JSON.stringify(securePayload),
@@ -121,6 +123,15 @@
 			});
 			const dataRes = await res.json(); // rename to avoid collision
 			if (!dataRes.success) { error = dataRes.error; return; }
+
+			// Handle Soft Errors / Info messages (Recovery)
+			if (dataRes.error) {
+				error = dataRes.error; // Show the error toast even on success (e.g. Restarted Hand)
+			}
+			if (dataRes.info) {
+				// We could add a success toast here, but for now just log or small error toast for visibility
+				error = dataRes.info; 
+			}
 
 			if (dataRes.data?.gameOver) {
 				const finalGame = game || dataRes.data.game;
