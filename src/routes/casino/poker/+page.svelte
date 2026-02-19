@@ -223,6 +223,26 @@
 		}
 	}
 
+	async function flagHand(handId?: string) {
+		if (!handId) return;
+		try {
+			const res = await fetch('/api/hands', {
+				method: 'PATCH',
+				headers: { ...getAuthHeaders($auth.token!), 'Content-Type': 'application/json' },
+				body: JSON.stringify({ handId })
+			});
+			const data = await res.json();
+			if (data.success) {
+				error = 'Hand flagged for review'; // Using error toast for feedback, maybe change to success toast?
+				// Or simple alert.
+			} else {
+				error = data.error || 'Failed to flag hand';
+			}
+		} catch (e) {
+			error = 'Connection failed';
+		}
+	}
+
 	function getName(id?: string) {
 		const player = game?.players.find(p => p.id === id);
 		if (player) return player.name;
@@ -542,6 +562,11 @@
 						{#if game.winReason}
 							<p class="win-reason" in:fly={{ y: -20, delay: 200, duration: 400 }}>{game.winReason}</p>
 						{/if}
+						
+						<!-- Flag Hand Button -->
+						<button class="btn btn-ghost flag-btn" onclick={() => flagHand(game?.currentHandId)} title="Flag for Review">
+							<ion-icon name="flag-outline"></ion-icon> Flag
+						</button>
 					</div>
 					
 					{#if nextHandTimer > 0}
@@ -775,6 +800,14 @@
 		max-width: 500px;
 		box-shadow: 0 -10px 40px rgba(0,0,0,0.6);
 	}
+
+	.flag-btn {
+		font-size: 0.8rem;
+		padding: 4px 8px;
+		opacity: 0.6;
+		margin-top: 4px;
+	}
+	.flag-btn:hover { opacity: 1; background: rgba(255,0,0,0.1); color: #ff5555; }
 
 	.main-actions {
 		display: flex;

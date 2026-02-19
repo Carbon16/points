@@ -54,8 +54,30 @@ export const POST: RequestHandler = async ({ request }) => {
 			'INSERT INTO hand_history (id, game_id, data, signatures, timestamp) VALUES (?, ?, ?, ?, ?)'
 		).run(id, gameId, typeof data === 'string' ? data : JSON.stringify(data), signatures, timestamp || Date.now());
 	} catch (e) {
+		console.error('Failed to store hand history:', e);
 		return json({ success: false, error: 'Failed to store hand' }, { status: 500 });
 	}
 
 	return json({ success: true, data: { id } });
+};
+
+// PATCH /api/hands — flag a hand for review
+export const PATCH: RequestHandler = async ({ request }) => {
+	const user = getAuthUser(request);
+	if (!user) return json({ success: false, error: 'Unauthorized' }, { status: 401 });
+
+	const { handId } = await request.json();
+	if (!handId) return json({ success: false, error: 'Missing handId' }, { status: 400 });
+
+	const db = getDb();
+	try {
+		// Only allow flagging? Or toggle? Let's just set to 1 for now (Flag).
+		const res = db.prepare('UPDATE hand_history SET flagged = 1 WHERE id = ?').run(handId);
+		if (res.changes === 0) return json({ success: false, error: 'Hand not found' }, { status: 404 });
+	} catch (e) {
+		console.error('Failed to flag hand:', e);
+		return json({ success: false, error: 'Failed to flag hand' }, { status: 500 });
+	}
+
+	return json({ success: true });
 };

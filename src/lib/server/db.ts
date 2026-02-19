@@ -156,7 +156,8 @@ export function getDb(): Database.Database {
 				game_id TEXT NOT NULL,
 				data TEXT NOT NULL,
 				signatures TEXT NOT NULL DEFAULT '{}',
-				timestamp INTEGER NOT NULL
+				timestamp INTEGER NOT NULL,
+				flagged INTEGER DEFAULT 0
 			);
 		`);
 
@@ -168,6 +169,11 @@ export function getDb(): Database.Database {
 		// Migration: add amount to point_requests
 		try {
 			db.prepare("ALTER TABLE point_requests ADD COLUMN amount REAL DEFAULT 1.0").run();
+		} catch (e) { /* ignore */ }
+
+		// Migration: add flagged to hand_history
+		try {
+			db.prepare("ALTER TABLE hand_history ADD COLUMN flagged INTEGER DEFAULT 0").run();
 		} catch (e) { /* ignore */ }
 	}
 	return db;

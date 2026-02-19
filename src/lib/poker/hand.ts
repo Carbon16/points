@@ -21,8 +21,8 @@ const HAND_RANK_VALUES: Record<HandRank, number> = {
 export function getRankValue(rank: Rank): number {
 	const val = RANK_VALUES[String(rank) as Rank];
 	if (val === undefined) {
-		console.error(`Invalid rank encountered: ${rank}`);
-		return 0; // Prevent grouping undefineds into a pair
+		console.error(`CRITICAL: Invalid rank encountered: "${rank}"`);
+		throw new Error(`Invalid card rank: ${rank}`);
 	}
 	return val;
 }
@@ -37,7 +37,18 @@ function getCounts(cards: Card[]): Map<number, number> {
 }
 
 function isFlush(cards: Card[]): boolean {
-	return cards.every((c) => c.suit === cards[0].suit);
+	const firstSuit = cards[0].suit;
+	if (!['hearts', 'diamonds', 'clubs', 'spades'].includes(firstSuit)) {
+		console.error(`CRITICAL: Invalid suit encountered: "${firstSuit}"`);
+		throw new Error(`Invalid card suit: ${firstSuit}`);
+	}
+	return cards.every((c) => {
+		if (c.suit !== firstSuit && !['hearts', 'diamonds', 'clubs', 'spades'].includes(c.suit)) {
+			console.error(`CRITICAL: Invalid suit encountered: "${c.suit}"`);
+			throw new Error(`Invalid card suit: ${c.suit}`);
+		}
+		return c.suit === firstSuit;
+	});
 }
 
 function isStraight(cards: Card[]): { straight: boolean; highCard: number } {

@@ -1,0 +1,1038 @@
+--- RECENT HAND HISTORY ---
+
+Hand ID: 7ade3a8a-4c9e-4a88-8575-9c9ceb0d1d99
+{
+  "gameId": "3cf875c7-fa9d-4f37-adf5-483e6bb19b4a",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "diamonds",
+      "rank": "9"
+    },
+    {
+      "suit": "clubs",
+      "rank": "K"
+    }
+  ],
+  "opponentHand": [
+    {
+      "suit": "clubs",
+      "rank": "J"
+    },
+    {
+      "suit": "hearts",
+      "rank": "Q"
+    }
+  ],
+  "community": [
+    {
+      "suit": "spades",
+      "rank": "8"
+    },
+    {
+      "suit": "hearts",
+      "rank": "J"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "8"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "4"
+    },
+    {
+      "suit": "spades",
+      "rank": "J"
+    }
+  ],
+  "pot": 0,
+  "winner": "player2",
+  "timestamp": 1771458649725
+}
+
+Hand ID: d85fe6a4-dbbb-4cf1-9940-b9d445f7828a
+{
+  "gameId": "3134a7c9-ae34-4a90-bd9c-fbc3db091136",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "diamonds",
+      "rank": "9"
+    },
+    {
+      "suit": "spades",
+      "rank": "6"
+    }
+  ],
+  "opponentHand": [
+    {
+      "suit": "clubs",
+      "rank": "6"
+    },
+    {
+      "suit": "spades",
+      "rank": "5"
+    }
+  ],
+  "community": [
+    {
+      "suit": "diamonds",
+      "rank": "3"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "8"
+    },
+    {
+      "suit": "clubs",
+      "rank": "5"
+    },
+    {
+      "suit": "clubs",
+      "rank": "3"
+    },
+    {
+      "suit": "spades",
+      "rank": "8"
+    }
+  ],
+  "pot": 0,
+  "winner": "player1",
+  "timestamp": 1771457795734
+}
+
+Hand ID: 1dafe045-646e-4e08-8f9d-aa6e496aa0f4
+{
+  "gameId": "2d707a2e-3f92-4f5a-9452-4d0c8d2d21d3",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "spades",
+      "rank": "Q"
+    },
+    {
+      "suit": "spades",
+      "rank": "A"
+    }
+  ],
+  "opponentHand": [
+    {
+      "suit": "hearts",
+      "rank": "3"
+    },
+    {
+      "suit": "clubs",
+      "rank": "9"
+    }
+  ],
+  "community": [
+    {
+      "suit": "clubs",
+      "rank": "3"
+    },
+    {
+      "suit": "spades",
+      "rank": "4"
+    },
+    {
+      "suit": "spades",
+      "rank": "2"
+    },
+    {
+      "suit": "spades",
+      "rank": "9"
+    },
+    {
+      "suit": "spades",
+      "rank": "5"
+    }
+  ],
+  "pot": 0,
+  "winner": "player2",
+  "timestamp": 1771373841801
+}
+
+Hand ID: 434960f2-77f1-4c5f-a46d-5f512e533075
+{
+  "gameId": "38c057a0-41f2-4b66-a423-309a3cf2b422",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "hearts",
+      "rank": "3"
+    },
+    {
+      "suit": "clubs",
+      "rank": "9"
+    }
+  ],
+  "opponentHand": [],
+  "community": [
+    {
+      "suit": "clubs",
+      "rank": "3"
+    },
+    {
+      "suit": "spades",
+      "rank": "4"
+    },
+    {
+      "suit": "spades",
+      "rank": "2"
+    },
+    {
+      "suit": "spades",
+      "rank": "9"
+    },
+    {
+      "suit": "spades",
+      "rank": "5"
+    }
+  ],
+  "pot": 85,
+  "winner": "player2",
+  "timestamp": 1771373838998
+}
+
+Hand ID: ce005969-e670-4a84-9a6c-25c1e0955d3c
+{
+  "gameId": "01b5881f-59ba-4b0c-ad7b-82614ff50334",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "hearts",
+      "rank": "3"
+    },
+    {
+      "suit": "clubs",
+      "rank": "3"
+    }
+  ],
+  "opponentHand": [],
+  "community": [
+    {
+      "suit": "diamonds",
+      "rank": "K"
+    },
+    {
+      "suit": "spades",
+      "rank": "K"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "3"
+    },
+    {
+      "suit": "spades",
+      "rank": "9"
+    }
+  ],
+  "pot": 100,
+  "winner": "player2",
+  "timestamp": 1771373645447
+}
+
+Hand ID: bd21856e-b57f-494a-a148-cde94a08f308
+{
+  "gameId": "ffd99fc3-ed4b-49c5-9571-ab4fc3507408",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "hearts",
+      "rank": "9"
+    },
+    {
+      "suit": "hearts",
+      "rank": "K"
+    }
+  ],
+  "opponentHand": [
+    {
+      "suit": "diamonds",
+      "rank": "2"
+    },
+    {
+      "suit": "spades",
+      "rank": "2"
+    }
+  ],
+  "community": [
+    {
+      "suit": "clubs",
+      "rank": "6"
+    },
+    {
+      "suit": "clubs",
+      "rank": "K"
+    },
+    {
+      "suit": "hearts",
+      "rank": "6"
+    },
+    {
+      "suit": "hearts",
+      "rank": "8"
+    },
+    {
+      "suit": "spades",
+      "rank": "7"
+    }
+  ],
+  "pot": 0,
+  "winner": "player2",
+  "timestamp": 1771372244014
+}
+
+Hand ID: 750413f0-04db-422f-9de8-b2f730e86a44
+{
+  "gameId": "78118f4b-6963-48d7-a4c2-dc862f7bebb2",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "diamonds",
+      "rank": "2"
+    },
+    {
+      "suit": "spades",
+      "rank": "2"
+    }
+  ],
+  "opponentHand": [],
+  "community": [
+    {
+      "suit": "clubs",
+      "rank": "6"
+    },
+    {
+      "suit": "clubs",
+      "rank": "K"
+    },
+    {
+      "suit": "hearts",
+      "rank": "6"
+    },
+    {
+      "suit": "hearts",
+      "rank": "8"
+    },
+    {
+      "suit": "spades",
+      "rank": "7"
+    }
+  ],
+  "pot": 45,
+  "winner": "player2",
+  "timestamp": 1771372240912
+}
+
+Hand ID: eb9a160c-a48b-4c83-a8ab-83c7dff645f4
+{
+  "gameId": "921991d8-de62-47b3-af12-354895bcda37",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "hearts",
+      "rank": "J"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "J"
+    }
+  ],
+  "opponentHand": [
+    {
+      "suit": "clubs",
+      "rank": "8"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "2"
+    }
+  ],
+  "community": [
+    {
+      "suit": "clubs",
+      "rank": "A"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "A"
+    },
+    {
+      "suit": "hearts",
+      "rank": "8"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "5"
+    },
+    {
+      "suit": "clubs",
+      "rank": "4"
+    }
+  ],
+  "pot": 0,
+  "winner": "player2",
+  "timestamp": 1771370238736
+}
+
+Hand ID: 8fd93f19-dae8-4c54-8848-e2bf70c6c3c2
+{
+  "gameId": "817ad984-610f-4f43-9174-f03dfb7bf65e",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "clubs",
+      "rank": "8"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "2"
+    }
+  ],
+  "opponentHand": [],
+  "community": [
+    {
+      "suit": "clubs",
+      "rank": "A"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "A"
+    },
+    {
+      "suit": "hearts",
+      "rank": "8"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "5"
+    },
+    {
+      "suit": "clubs",
+      "rank": "4"
+    }
+  ],
+  "pot": 55,
+  "winner": "player2",
+  "timestamp": 1771370235697
+}
+
+Hand ID: ffc103a0-130f-4e84-9506-7433e1b425d4
+{
+  "gameId": "e9f0917d-fddc-436d-a394-b7d9c0a3a212",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "clubs",
+      "rank": "J"
+    },
+    {
+      "suit": "hearts",
+      "rank": "Q"
+    }
+  ],
+  "opponentHand": [
+    {
+      "suit": "spades",
+      "rank": "K"
+    },
+    {
+      "suit": "clubs",
+      "rank": "K"
+    }
+  ],
+  "community": [
+    {
+      "suit": "spades",
+      "rank": "10"
+    },
+    {
+      "suit": "hearts",
+      "rank": "10"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "6"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "10"
+    },
+    {
+      "suit": "spades",
+      "rank": "5"
+    }
+  ],
+  "pot": 0,
+  "winner": "player2",
+  "timestamp": 1771368881462
+}
+
+Hand ID: ef283bf7-c3d2-4477-91ca-bb1d52572245
+{
+  "gameId": "c6e78186-cc53-4b31-ac7a-25f35d9d6cd2",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "clubs",
+      "rank": "J"
+    },
+    {
+      "suit": "hearts",
+      "rank": "Q"
+    }
+  ],
+  "opponentHand": [],
+  "community": [
+    {
+      "suit": "spades",
+      "rank": "10"
+    },
+    {
+      "suit": "hearts",
+      "rank": "10"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "6"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "10"
+    },
+    {
+      "suit": "spades",
+      "rank": "5"
+    }
+  ],
+  "pot": 10,
+  "winner": "player2",
+  "timestamp": 1771368878805
+}
+
+Hand ID: cc23cd46-6b85-4ced-9226-6157fb295adc
+{
+  "gameId": "d8041da2-1a8e-45da-83d7-beb7b7a43044",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "clubs",
+      "rank": "J"
+    },
+    {
+      "suit": "hearts",
+      "rank": "Q"
+    }
+  ],
+  "opponentHand": [],
+  "community": [
+    {
+      "suit": "spades",
+      "rank": "10"
+    },
+    {
+      "suit": "hearts",
+      "rank": "10"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "6"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "10"
+    }
+  ],
+  "pot": 10,
+  "winner": "player2",
+  "timestamp": 1771368876603
+}
+
+Hand ID: c4c2f153-4252-4c7d-81a3-a981bba3dc99
+{
+  "gameId": "bdf80ed3-e22c-4332-8e90-7b1880b2d131",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "clubs",
+      "rank": "J"
+    },
+    {
+      "suit": "hearts",
+      "rank": "Q"
+    }
+  ],
+  "opponentHand": [],
+  "community": [
+    {
+      "suit": "spades",
+      "rank": "10"
+    },
+    {
+      "suit": "hearts",
+      "rank": "10"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "6"
+    }
+  ],
+  "pot": 10,
+  "winner": "player2",
+  "timestamp": 1771368872710
+}
+
+Hand ID: 3cf29a90-57d6-4433-90b9-0c6e6b40799f
+{
+  "gameId": "ad2c456f-51c9-4073-9d02-c89a2ac972d0",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "spades",
+      "rank": "K"
+    },
+    {
+      "suit": "clubs",
+      "rank": "K"
+    }
+  ],
+  "opponentHand": [],
+  "community": [],
+  "pot": 10,
+  "winner": "player2",
+  "timestamp": 1771368871483
+}
+
+Hand ID: 4364b91c-74a2-44e5-a403-3531aa61ac3a
+{
+  "gameId": "403565a1-b8a9-4b2c-ab8f-3725ac9221cc",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "hearts",
+      "rank": "8"
+    },
+    {
+      "suit": "clubs",
+      "rank": "Q"
+    }
+  ],
+  "opponentHand": [],
+  "community": [
+    {
+      "suit": "clubs",
+      "rank": "5"
+    },
+    {
+      "suit": "spades",
+      "rank": "5"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "6"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "5"
+    }
+  ],
+  "pot": 10,
+  "winner": "player2",
+  "timestamp": 1771368860209
+}
+
+Hand ID: 7a0b3cdd-309b-476a-a007-90143bc8ed2f
+{
+  "gameId": "650e0fb8-5a89-4772-9f56-6b56fa677b75",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "hearts",
+      "rank": "8"
+    },
+    {
+      "suit": "clubs",
+      "rank": "Q"
+    }
+  ],
+  "opponentHand": [],
+  "community": [
+    {
+      "suit": "clubs",
+      "rank": "5"
+    },
+    {
+      "suit": "spades",
+      "rank": "5"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "6"
+    }
+  ],
+  "pot": 10,
+  "winner": "player2",
+  "timestamp": 1771368856448
+}
+
+Hand ID: d0349fc0-41f0-42df-8ea7-76b766899c9d
+{
+  "gameId": "a6f744de-d757-4577-8ecd-8c2b82f5018f",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "spades",
+      "rank": "J"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "Q"
+    }
+  ],
+  "opponentHand": [],
+  "community": [],
+  "pot": 10,
+  "winner": "player2",
+  "timestamp": 1771368852539
+}
+
+Hand ID: 6a281274-77a9-4d87-b00f-6cfe00f840da
+{
+  "gameId": "b4fb7fe7-a715-4e94-9cb2-b8c65d2d7910",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "diamonds",
+      "rank": "9"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "J"
+    }
+  ],
+  "opponentHand": [],
+  "community": [
+    {
+      "suit": "clubs",
+      "rank": "J"
+    },
+    {
+      "suit": "hearts",
+      "rank": "10"
+    },
+    {
+      "suit": "hearts",
+      "rank": "9"
+    },
+    {
+      "suit": "spades",
+      "rank": "Q"
+    }
+  ],
+  "pot": 10,
+  "winner": "player2",
+  "timestamp": 1771368844753
+}
+
+Hand ID: 406ef136-9c24-4dc8-bbb2-5cc54f7f1b66
+{
+  "gameId": "5c44cc7d-f08b-4e3b-b435-15261423517a",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "diamonds",
+      "rank": "9"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "J"
+    }
+  ],
+  "opponentHand": [],
+  "community": [
+    {
+      "suit": "clubs",
+      "rank": "J"
+    },
+    {
+      "suit": "hearts",
+      "rank": "10"
+    },
+    {
+      "suit": "hearts",
+      "rank": "9"
+    }
+  ],
+  "pot": 10,
+  "winner": "player2",
+  "timestamp": 1771368841300
+}
+
+Hand ID: 441263ba-0d5d-4ba4-ac4e-d1bed088b850
+{
+  "gameId": "751991d5-26f5-40df-b729-5125157b2b50",
+  "handNumber": 1,
+  "myHand": [
+    {
+      "suit": "clubs",
+      "rank": "K"
+    },
+    {
+      "suit": "spades",
+      "rank": "5"
+    }
+  ],
+  "opponentHand": [],
+  "community": [],
+  "pot": 10,
+  "winner": "player2",
+  "timestamp": 1771368836184
+}
+
+--- CURRENT GAME STATE ---
+{
+  "id": "0e36e63f-1969-4499-b88c-5d02f6cddc48",
+  "phase": "betting",
+  "players": [
+    {
+      "id": "player2",
+      "name": "Twunk",
+      "chips": 95,
+      "hand": [
+        {
+          "suit": "clubs",
+          "rank": "J"
+        },
+        {
+          "suit": "clubs",
+          "rank": "5"
+        }
+      ],
+      "currentBet": 5,
+      "folded": false,
+      "isDealer": false
+    },
+    {
+      "id": "player1",
+      "name": "Twink",
+      "chips": 150,
+      "hand": [
+        {
+          "suit": "hearts",
+          "rank": "5"
+        },
+        {
+          "suit": "hearts",
+          "rank": "8"
+        }
+      ],
+      "currentBet": 0,
+      "folded": false,
+      "isDealer": true
+    }
+  ],
+  "pot": 15,
+  "communityCards": [
+    {
+      "suit": "spades",
+      "rank": "Q"
+    },
+    {
+      "suit": "spades",
+      "rank": "3"
+    },
+    {
+      "suit": "hearts",
+      "rank": "Q"
+    }
+  ],
+  "currentPlayerIndex": 1,
+  "deck": [
+    {
+      "suit": "hearts",
+      "rank": "K"
+    },
+    {
+      "suit": "spades",
+      "rank": "4"
+    },
+    {
+      "suit": "spades",
+      "rank": "5"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "10"
+    },
+    {
+      "suit": "hearts",
+      "rank": "7"
+    },
+    {
+      "suit": "clubs",
+      "rank": "2"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "7"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "6"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "4"
+    },
+    {
+      "suit": "spades",
+      "rank": "8"
+    },
+    {
+      "suit": "clubs",
+      "rank": "K"
+    },
+    {
+      "suit": "clubs",
+      "rank": "9"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "A"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "2"
+    },
+    {
+      "suit": "spades",
+      "rank": "10"
+    },
+    {
+      "suit": "hearts",
+      "rank": "10"
+    },
+    {
+      "suit": "hearts",
+      "rank": "9"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "K"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "9"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "8"
+    },
+    {
+      "suit": "clubs",
+      "rank": "A"
+    },
+    {
+      "suit": "clubs",
+      "rank": "10"
+    },
+    {
+      "suit": "hearts",
+      "rank": "6"
+    },
+    {
+      "suit": "clubs",
+      "rank": "4"
+    },
+    {
+      "suit": "spades",
+      "rank": "6"
+    },
+    {
+      "suit": "hearts",
+      "rank": "4"
+    },
+    {
+      "suit": "clubs",
+      "rank": "3"
+    },
+    {
+      "suit": "clubs",
+      "rank": "6"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "5"
+    },
+    {
+      "suit": "hearts",
+      "rank": "3"
+    },
+    {
+      "suit": "clubs",
+      "rank": "Q"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "Q"
+    },
+    {
+      "suit": "hearts",
+      "rank": "J"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "3"
+    },
+    {
+      "suit": "diamonds",
+      "rank": "J"
+    },
+    {
+      "suit": "spades",
+      "rank": "J"
+    },
+    {
+      "suit": "clubs",
+      "rank": "8"
+    },
+    {
+      "suit": "spades",
+      "rank": "7"
+    },
+    {
+      "suit": "spades",
+      "rank": "A"
+    },
+    {
+      "suit": "spades",
+      "rank": "2"
+    },
+    {
+      "suit": "spades",
+      "rank": "K"
+    },
+    {
+      "suit": "hearts",
+      "rank": "2"
+    },
+    {
+      "suit": "spades",
+      "rank": "9"
+    },
+    {
+      "suit": "hearts",
+      "rank": "A"
+    },
+    {
+      "suit": "clubs",
+      "rank": "7"
+    }
+  ],
+  "round": 1,
+  "handNumber": 1,
+  "playForPoints": false,
+  "currentHandId": "7edfe47c-a209-4ed9-861f-efb48e143dab"
+}
