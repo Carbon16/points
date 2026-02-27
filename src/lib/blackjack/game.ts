@@ -262,8 +262,14 @@ export function performAction(game: BlackjackGameState, playerId: string, action
             const betAmount = amount || 0;
             if (betAmount <= 0) throw new Error('Invalid bet amount');
             if (betAmount > player.chips) throw new Error('Not enough chips');
+            if (player.currentBet + betAmount < opponent.currentBet) {
+                throw new Error('Bet amount must be at least enough to call');
+            }
             player.currentBet += betAmount;
             player.status = 'stood';
+            if (player.currentBet > opponent.currentBet && opponent.status !== 'folded') {
+                opponent.status = 'betting';
+            }
             nextTurnBetting(game);
         } else {
             throw new Error('Invalid action for betting phase');
