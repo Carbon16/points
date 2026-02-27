@@ -31,7 +31,7 @@ export interface DiceGameState {
     stakes: Stakes;
 }
 
-const STARTING_CHIPS = 1000;
+const STARTING_CHIPS = 250;
 const ANTE_AMOUNT = 10;
 
 export function createGame(p1Id: string, p1Name: string, p2Id: string, p2Name: string, stakes: Stakes = 'full'): DiceGameState {
@@ -142,6 +142,9 @@ export function performAction(game: DiceGameState, userId: string, action: 'bid'
         if (game.currentBid) {
             if (quantity < game.currentBid.quantity) throw new Error('Bid must escalate quantity');
             if (quantity === game.currentBid.quantity && face <= game.currentBid.face) throw new Error('Bid must escalate face value');
+            if (raiseAmount <= game.currentBid.betAmount) {
+                throw new Error(`Raise must be greater than the previous bet (£${game.currentBid.betAmount})`);
+            }
         }
 
         // Betting Cost

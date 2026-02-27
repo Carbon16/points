@@ -120,3 +120,52 @@ export interface ApiResponse<T = unknown> {
 	data?: T;
 	error?: string;
 }
+
+// ─── Blackjack ────────────────────────────────────────────────────────
+export type BlackjackPhase = 'betting' | 'playing' | 'dealer-turn' | 'complete';
+export type BlackjackAction = 'bet' | 'hit' | 'stand' | 'double';
+
+export interface BlackjackPlayerState {
+	id: string;
+	name: string;
+	chips: number;
+	hand: Card[];
+	currentBet: number;
+	status: 'betting' | 'playing' | 'stood' | 'busted' | 'blackjack';
+	score: number;
+}
+
+export interface BlackjackGameState {
+	id: string;
+	phase: BlackjackPhase;
+	players: BlackjackPlayerState[];
+	dealerHand: Card[];
+	dealerScore: number;
+	deck: Card[];
+	handNumber: number;
+	winnerIds: string[]; // Players who beat the dealer
+	pushIds: string[];   // Players who tied the dealer
+	loserIds: string[];  // Players who lost to the dealer
+	winReason?: string;
+}
+
+// ─── Knucklebones ────────────────────────────────────────────────────────
+export type KnucklebonesPhase = 'waiting' | 'playing' | 'complete';
+export type KnucklebonesAction = 'roll' | 'place';
+
+export interface KnucklebonesPlayerState {
+    id: string;
+    name: string;
+    board: (number | null)[][]; // 3 columns, 3 rows. Null means empty.
+    score: number;
+    columnScores: number[];
+}
+
+export interface KnucklebonesGameState {
+    id: string;
+    phase: KnucklebonesPhase;
+    players: KnucklebonesPlayerState[];
+    currentPlayerIndex: number;
+    currentRoll: number | null; // The die value currently rolled and waiting to be placed
+    winnerId?: string;
+}

@@ -29,6 +29,26 @@
 			</div>
 		</button>
 
+		<button class="game-card blackjack" onclick={() => goto('/casino/blackjack')}>
+			<div class="icon">
+				<ion-icon name="albums-outline"></ion-icon>
+			</div>
+			<div class="info">
+				<h2>Blackjack</h2>
+				<p>Beat the dealer</p>
+			</div>
+		</button>
+        
+		<button class="game-card knucklebones" onclick={() => goto('/casino/knucklebones')}>
+			<div class="icon">
+				<ion-icon name="grid-outline"></ion-icon>
+			</div>
+			<div class="info">
+				<h2>Knucklebones</h2>
+				<p>Tactical dice placement</p>
+			</div>
+		</button>
+
 		<button class="game-card draw" onclick={() => goto('/casino/draw')}>
 			<div class="icon">
 				<ion-icon name="heart-outline"></ion-icon>
@@ -102,6 +122,16 @@
 	.game-card.dice:hover {
 		box-shadow: 0 0 30px rgba(236, 72, 153, 0.15);
 		border-color: rgba(236, 72, 153, 0.3);
+	}
+
+	.game-card.blackjack:hover {
+		box-shadow: 0 0 30px rgba(16, 185, 129, 0.15);
+		border-color: rgba(16, 185, 129, 0.3);
+	}
+
+	.game-card.knucklebones:hover {
+		box-shadow: 0 0 30px rgba(245, 158, 11, 0.15);
+		border-color: rgba(245, 158, 11, 0.3);
 	}
 
 	.icon {
