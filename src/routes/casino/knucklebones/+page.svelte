@@ -222,10 +222,18 @@
              {/if}
 
 			{#if isWaiting}
-                <div class="waiting-area">
+                <div class="waiting-area" style="flex-direction: column; gap: 20px;">
                     <div class="loading-state">
-                        <div class="loading-spinner"></div>
-                        <span class="loading-text">Waiting for opponent...</span>
+                        {#if !me}
+                            <h2 style="font-size: 2rem; margin-bottom: 20px;">Game Available</h2>
+                            <p class="waiting-text" style="color: #aaa;">A player is waiting for an opponent.</p>
+                            <button class="btn btn-primary btn-large" style="margin-top: 20px;" onclick={joinGame}>
+                                Join Game
+                            </button>
+                        {:else}
+                            <div class="loading-spinner"></div>
+                            <span class="loading-text">Waiting for opponent...</span>
+                        {/if}
                     </div>
                 </div>
             {:else if me && opponent}

@@ -563,8 +563,6 @@ h1 { font-size: 1.3rem; font-weight: 800; text-align: center; opacity: 0.5; disp
     background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.05) 5px, rgba(255,255,255,0.05) 10px);
 }
 
-.playing-card.empty { background: rgba(0,0,0,0.2); box-shadow: none; border: 2px dashed rgba(255,255,255,0.1); }
-
 .table-center {
     display: flex;
     flex-direction: column;
@@ -573,22 +571,6 @@ h1 { font-size: 1.3rem; font-weight: 800; text-align: center; opacity: 0.5; disp
     margin: auto 0; /* This keeps the table perfectly centered between players */
     z-index: 1;
 }
-
-.dealer-zone {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-}
-
-.dealer-label {
-    font-weight: 800;
-    font-size: 0.9rem;
-    letter-spacing: 0.1em;
-    color: var(--text-muted);
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-}
-.dealer-label .score-value { color: #fff; margin-left: 6px; }
 
 /* Actions Bar */
 .actions-bar, .waiting-bar {
