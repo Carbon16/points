@@ -297,7 +297,7 @@
 			<div class="player-zone my-zone">
 				<div class="hand-area my-hand-area">
 					{#if me.hand && me.hand.length > 0}
-						{#each me.hand as card, i (card.rank + card.suit)}
+						{#each me.hand as card, i (i + '_' + card.rank + card.suit)}
 							<div class="playing-card my-card" class:red={isRed(card.suit)} 
 								in:fly={{ y: 100, duration: 500, delay: i * 150, easing: cubicOut }}>
 								<span class="card-top">{card.rank}{getSuitSymbol(card.suit)}</span>
