@@ -350,20 +350,24 @@
                             {/if}
 
                             <div class="bet-section" style="flex: 2; display: flex; flex-direction: column; gap: 8px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 12px;">
-                                <button class="btn btn-primary bet-btn-small" onclick={() => doAction('bet', betAmount)} disabled={me.chips < betAmount || betAmount < minBet}>
-                                    Bet £{betAmount}
+                                <button class="btn btn-primary bet-btn-small" onclick={() => doAction('bet', betAmount)} disabled={me.chips < betAmount || betAmount < (opponent && opponent.currentBet > me.currentBet ? opponent.currentBet - me.currentBet + minBet : minBet)}>
+                                    {#if opponent && opponent.currentBet > me.currentBet}
+                                        Raise to £{me.currentBet + betAmount}
+                                    {:else}
+                                        Bet £{betAmount}
+                                    {/if}
                                 </button>
                                 <div class="slider-container">
                                     <input 
                                         type="range" 
-                                        min={minBet} 
+                                        min={opponent && opponent.currentBet > me.currentBet ? opponent.currentBet - me.currentBet + minBet : minBet} 
                                         max={Math.min(maxBet, 250)} 
                                         step="5" 
                                         bind:value={betAmount}
                                         class="big-slider"
                                     />
                                     <div class="slider-labels">
-                                        <span>£{minBet}</span>
+                                        <span>£{opponent && opponent.currentBet > me.currentBet ? opponent.currentBet - me.currentBet + minBet : minBet}</span>
                                         <span>£{Math.min(maxBet, 250)}</span>
                                     </div>
                                 </div>
