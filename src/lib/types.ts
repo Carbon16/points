@@ -169,4 +169,5 @@ export interface KnucklebonesGameState {
     currentPlayerIndex: number;
     currentRoll: number | null; // The die value currently rolled and waiting to be placed
     winnerId?: string;
+    stakes: 'full' | 'half' | 'none';
 }

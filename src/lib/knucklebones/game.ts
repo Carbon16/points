@@ -1,7 +1,7 @@
 import type { KnucklebonesGameState, KnucklebonesPlayerState, KnucklebonesAction } from '$lib/types';
 import crypto from 'node:crypto';
 
-export function createGame(player1Id: string, player1Name: string, player2Id: string, player2Name: string): KnucklebonesGameState {
+export function createGame(player1Id: string, player1Name: string, player2Id: string, player2Name: string, stakes: 'full' | 'half' | 'none' = 'full'): KnucklebonesGameState {
 	return {
 		id: crypto.randomUUID(),
 		phase: 'waiting',
@@ -23,6 +23,7 @@ export function createGame(player1Id: string, player1Name: string, player2Id: st
 		],
         currentPlayerIndex: 0,
         currentRoll: null,
+        stakes
 	};
 }
 
@@ -116,7 +117,7 @@ export function performAction(game: KnucklebonesGameState, playerId: string, act
         }
         
         // Compact opponent's column (gravity)
-        const compactCol = opponent.board[colIndex].filter(v => v !== null);
+        const compactCol: (number | null)[] = opponent.board[colIndex].filter(v => v !== null);
         while (compactCol.length < 3) compactCol.push(null); // Pad with nulls
         
         // Convert to (number | null)[] specifically if needed?

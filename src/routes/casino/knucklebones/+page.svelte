@@ -43,13 +43,15 @@
 		}
 	}
 
+	let stakesSelection = $state<'full' | 'half' | 'none'>('full');
+
 	async function createGame() {
 		error = null;
 		try {
 			const res = await fetch('/api/knucklebones', {
 				method: 'POST',
 				headers: { ...getAuthHeaders($auth.token!), 'Content-Type': 'application/json' },
-				body: JSON.stringify({ action: 'create' })
+				body: JSON.stringify({ action: 'create', payload: { stakes: stakesSelection } })
 			});
 			const data = await res.json();
 			if (data.success) {
@@ -159,6 +161,15 @@
 				<h1 class="game-title">Knucklebones</h1>
 				<p class="game-subtitle">Strategic dice placement. Match dice to multiply, place to destroy.</p>
 				
+                <div class="stakes-selector" style="margin-bottom: 24px; text-align: left;">
+                    <label style="display: block; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: bold; margin-bottom: 8px;">Stakes</label>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn {stakesSelection === 'full' ? 'btn-primary' : 'btn-ghost'}" style="flex: 1;" onclick={() => stakesSelection = 'full'}>Full Pt</button>
+                        <button class="btn {stakesSelection === 'half' ? 'btn-primary' : 'btn-ghost'}" style="flex: 1;" onclick={() => stakesSelection = 'half'}>Half Pt</button>
+                        <button class="btn {stakesSelection === 'none' ? 'btn-primary' : 'btn-ghost'}" style="flex: 1;" onclick={() => stakesSelection = 'none'}>Practice</button>
+                    </div>
+                </div>
+
 				<div class="lobby-actions">
 					<button onclick={createGame} class="btn btn-primary btn-large">
 						Start New Game
@@ -181,7 +192,14 @@
 				</div>
 				<div class="header-info">
 					<h2 class="header-title">Knucklebones</h2>
-					<div class="header-status">Phase: <span class="phase-name">{game.phase}</span></div>
+					<div class="header-status">
+                        Phase: <span class="phase-name">{game.phase}</span>
+                        {#if game.stakes}
+                            <span style="margin-left: 8px; font-size: 0.7rem; color: #aaa; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">
+                                {game.stakes === 'full' ? '1 PT' : game.stakes === 'half' ? '0.5 PT' : 'PRACTICE'}
+                            </span>
+                        {/if}
+                    </div>
 				</div>
 			</div>
 			

@@ -3,6 +3,7 @@ import { createGame, joinGame, performAction, isGameOver } from '$lib/knucklebon
 import type { KnucklebonesGameState } from '$lib/types';
 import { verifyToken, getUserName } from '$lib/server/auth';
 import { getDb } from '$lib/server/db';
+import { addBlock } from '$lib/blockchain/chain';
 
 function loadGame(): KnucklebonesGameState | null {
 	const db = getDb();
@@ -38,7 +39,7 @@ export async function POST({ request, cookies }) {
 
     const { userId, name: userName } = decoded;
 
-    const { action, colIndex } = await request.json();
+    const { action, colIndex, payload } = await request.json();
 
     if (action === 'create') {
         const existing = loadGame();
@@ -49,8 +50,9 @@ export async function POST({ request, cookies }) {
 			}
 		}
 
+        const { stakes } = payload || {};
         const dbName = getUserName(userId);
-        const game = createGame(userId, dbName || userName, 'waiting', 'Waiting User');
+        const game = createGame(userId, dbName || userName, 'waiting', 'Waiting User', stakes || 'full');
         saveGame(game);
         return json({ success: true, game });
     }
@@ -80,6 +82,23 @@ export async function POST({ request, cookies }) {
 
     try {
         game = performAction(game, userId, action, colIndex);
+        
+        const { over, winner, loser } = isGameOver(game);
+        if (over && winner && loser && game.stakes !== 'none' && !(game as any).resultsRecorded) {
+            const points = game.stakes === 'full' ? 1 : 0.5;
+            const blockData: any = { 
+                type: 'knucklebones_win', 
+                winner: winner,
+                loser: loser,
+                description: `Won Knucklebones (${points} pts)`,
+                approvedBy: [game.players[0].id, game.players[1].id].filter(id => id !== 'waiting'), 
+                timestamp: Date.now(),
+                amount: points
+            };
+            await addBlock(blockData);
+            (game as any).resultsRecorded = true;
+        }
+
         saveGame(game);
         return json({ success: true, game });
     } catch (e: any) {

@@ -13,7 +13,7 @@
 
     // Form inputs
     let betAmount = $state(10);
-	let playForPoints = $state(true);
+	let stakesSelection = $state<'full' | 'half' | 'none'>('full');
 
 	onMount(() => {
 		loadGame();
@@ -54,7 +54,7 @@
 	async function createGame() {
 		error = null;
 		try {
-			const stakes = playForPoints ? 'full' : 'none';
+			const stakes = stakesSelection;
 			const res = await fetch('/api/blackjack', {
 				method: 'POST',
 				headers: { ...getAuthHeaders($auth.token!), 'Content-Type': 'application/json' },
@@ -177,9 +177,11 @@
 			<ion-icon name="arrow-back-outline"></ion-icon>
 		</button>
 		<h1>🃏 Blackjack</h1>
-		{#if game && game.stakes === 'none'}
-			<span class="badge practice-badge">Practice Mode</span>
-		{/if}
+        {#if game && game.stakes}
+            <span class="badge practice-badge">
+                {game.stakes === 'full' ? '1 PT Stakes' : game.stakes === 'half' ? '0.5 PT Stakes' : 'Practice Mode'}
+            </span>
+        {/if}
         {#if game}
              <button class="btn btn-ghost sm" onclick={leaveGame}>Leave</button>
         {:else}
@@ -202,11 +204,13 @@
             <h2>Blackjack</h2>
 			<p class="lobby-text">Beat the dealer to win chips.</p>
 			
-			<div class="lobby-controls">
-                <label class="toggle-label">
-					<input type="checkbox" bind:checked={playForPoints} />
-					<span class="toggle-text">Play for Points (Stakes)</span>
-				</label>
+			<div class="lobby-controls stakes-selector" style="margin-bottom: 24px; text-align: left; width: 100%;">
+                <label style="display: block; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: bold; margin-bottom: 8px;">Stakes</label>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn {stakesSelection === 'full' ? 'btn-primary' : 'btn-ghost'}" style="flex: 1;" onclick={() => stakesSelection = 'full'}>Full Pt</button>
+                    <button class="btn {stakesSelection === 'half' ? 'btn-primary' : 'btn-ghost'}" style="flex: 1;" onclick={() => stakesSelection = 'half'}>Half Pt</button>
+                    <button class="btn {stakesSelection === 'none' ? 'btn-primary' : 'btn-ghost'}" style="flex: 1;" onclick={() => stakesSelection = 'none'}>Practice</button>
+                </div>
 			</div>
 
             <div class="actions">
