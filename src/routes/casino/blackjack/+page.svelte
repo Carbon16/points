@@ -382,7 +382,7 @@
                         <div class="secondary-actions" style="display: flex; gap: 8px;">
                             <button class="btn btn-primary" onclick={() => doAction('hit')}>HIT</button>
                             <button class="btn btn-success" onclick={() => doAction('stand')}>STAND</button>
-                            <button class="btn btn-warning" onclick={() => doAction('double')} disabled={me.chips < me.currentBet || me.hand.length > 2}>DOUBLE DOWN</button>
+                            <button class="btn btn-warning tooltip" data-tip="Double your bet, receive exactly one more card, and stand." onclick={() => doAction('double')} disabled={me.chips < me.currentBet || me.hand.length > 2}>DOUBLE DOWN</button>
                         </div>
                     </div>
                 {:else}

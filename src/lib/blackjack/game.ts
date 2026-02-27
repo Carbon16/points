@@ -132,6 +132,13 @@ function startNewHand(game: BlackjackGameState) {
     game.winReason = undefined;
 }
 
+function isTrueBlackjack(hand: Card[]): boolean {
+    if (hand.length !== 2) return false;
+    const hasAce = hand.some(c => c.rank === 'A');
+    const hasBlackJack = hand.some(c => c.rank === 'J' && (c.suit === 'clubs' || c.suit === 'spades'));
+    return hasAce && hasBlackJack;
+}
+
 function nextTurnBetting(game: BlackjackGameState) {
     const p1 = game.players[0];
     const p2 = game.players[1];
@@ -146,10 +153,12 @@ function nextTurnBetting(game: BlackjackGameState) {
 
     if (bothActed && betsMatch) {
         // Move to playing phase
-        if (p1.score === 21) p1.status = 'blackjack';
+        if (isTrueBlackjack(p1.hand)) p1.status = 'true_blackjack';
+        else if (p1.score === 21) p1.status = 'blackjack';
         else p1.status = 'playing';
 
-        if (p2.score === 21) p2.status = 'blackjack';
+        if (isTrueBlackjack(p2.hand)) p2.status = 'true_blackjack';
+        else if (p2.score === 21) p2.status = 'blackjack';
         else p2.status = 'playing';
 
         game.phase = 'playing';
@@ -165,7 +174,7 @@ function checkNextTurnPlaying(game: BlackjackGameState) {
     const p1 = game.players[0];
     const p2 = game.players[1];
 
-    const isDone = (p: BlackjackPlayerState) => p.status === 'stood' || p.status === 'busted' || p.status === 'blackjack' || p.status === 'folded';
+    const isDone = (p: BlackjackPlayerState) => p.status === 'stood' || p.status === 'busted' || p.status === 'blackjack' || p.status === 'true_blackjack' || p.status === 'folded';
 
     if (game.currentPlayerIndex === 0 && isDone(p1)) {
         game.currentPlayerIndex = 1;
@@ -205,6 +214,7 @@ function endHand(game: BlackjackGameState) {
 
     const getHandValue = (p: BlackjackPlayerState) => {
         if (p.status === 'busted') return -1;
+        if (p.status === 'true_blackjack') return 23; // Highest possible hand
         if (p.status === 'blackjack') return 22; // Treat BJ as higher than 21
         return p.score;
     };
@@ -216,12 +226,12 @@ function endHand(game: BlackjackGameState) {
         game.winnerIds.push(p1.id);
         game.loserIds.push(p2.id);
         p1.chips += game.pot;
-        game.winReason = val1 === 22 ? "Blackjack!" : "High hand wins";
+        game.winReason = val1 === 23 ? "True Blackjack!" : val1 === 22 ? "Blackjack!" : "High hand wins";
     } else if (val2 > val1) {
         game.winnerIds.push(p2.id);
         game.loserIds.push(p1.id);
         p2.chips += game.pot;
-        game.winReason = val2 === 22 ? "Blackjack!" : "High hand wins";
+        game.winReason = val2 === 23 ? "True Blackjack!" : val2 === 22 ? "Blackjack!" : "High hand wins";
     } else {
         // Tie
         game.pushIds.push(p1.id, p2.id);

@@ -131,7 +131,7 @@ export interface BlackjackPlayerState {
 	chips: number;
 	hand: Card[];
 	currentBet: number;
-	status: 'waiting' | 'betting' | 'playing' | 'stood' | 'busted' | 'blackjack' | 'folded';
+	status: 'waiting' | 'betting' | 'playing' | 'stood' | 'busted' | 'blackjack' | 'true_blackjack' | 'folded';
 	score: number;
 }
 
