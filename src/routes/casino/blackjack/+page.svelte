@@ -285,8 +285,8 @@
 				<div class="community-zone">
 					<div class="pot-display" style="margin-top: 15px;">
 						<span class="pot-label">POT</span>
-						{#key game.pot}
-						<span class="pot-value" in:scale>£{game.pot}</span>
+						{#key game.phase === 'complete' ? game.pot : game.pot + game.players.reduce((sum, p) => sum + p.currentBet, 0)}
+						<span class="pot-value" in:scale>£{game.phase === 'complete' ? game.pot : game.pot + game.players.reduce((sum, p) => sum + p.currentBet, 0)}</span>
 						{/key}
 					</div>
 				</div>
