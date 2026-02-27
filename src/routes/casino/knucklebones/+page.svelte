@@ -126,48 +126,47 @@
     let isMyTurn = $derived(game?.currentPlayerIndex === myIndex);
 
 	// ─── Component specific styling ───
-	const dieColors: Record<number, string> = {
-		1: 'from-slate-100 to-slate-300 text-slate-800',
-		2: 'from-blue-100 to-blue-300 text-blue-900',
-		3: 'from-emerald-100 to-emerald-300 text-emerald-900',
-		4: 'from-amber-100 to-amber-300 text-amber-900',
-		5: 'from-rose-100 to-rose-300 text-rose-900',
-		6: 'from-purple-100 to-purple-300 text-purple-900',
+	const dieColorClasses: Record<number, string> = {
+		1: 'die-v1',
+		2: 'die-v2',
+		3: 'die-v3',
+		4: 'die-v4',
+		5: 'die-v5',
+		6: 'die-v6',
 	};
 
-	function getDieColor(val: number | null) {
-		if (val === null) return 'bg-slate-800/50 border-slate-700/50';
-		return `bg-gradient-to-br border-white/20 shadow-md ${dieColors[val]}`;
+	function getDieColorClass(val: number | null) {
+		if (val === null) return 'die-empty';
+		return `die-active ${dieColorClasses[val]}`;
 	}
 </script>
 
-<div class="h-full flex flex-col bg-slate-900 text-slate-100 overflow-hidden font-sans relative">
+<div class="knucklebones-container">
 	{#if error}
-		<div class="absolute top-4 left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-6 py-3 rounded-full shadow-2xl z-50 flex items-center gap-3 animate-fade-in backdrop-blur-sm border border-red-400">
-			<span class="font-bold">Error:</span> {error}
-			<button class="ml-2 hover:bg-red-600 rounded-full p-1 transition-colors" onclick={() => error = null}>✕</button>
+		<div class="error-toast">
+			<span class="error-title">Error:</span> {error}
+			<button class="close-error" onclick={() => error = null}>✕</button>
 		</div>
 	{/if}
 
 	{#if !game}
 		<!-- ─── Lobby ─── -->
-		<div class="flex-1 flex flex-col items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-900/20 via-slate-900 to-black">
-			<div class="max-w-md w-full bg-slate-800/50 p-10 rounded-3xl shadow-2xl border border-slate-700/50 backdrop-blur-md text-center">
-				<div class="w-20 h-20 bg-amber-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-					<span class="text-4xl">🎲</span>
+		<div class="lobby-screen">
+			<div class="lobby-card">
+				<div class="game-icon">
+					<span>🎲</span>
 				</div>
-				<h1 class="text-4xl font-extrabold mb-2 bg-gradient-to-br from-white to-amber-200 bg-clip-text text-transparent">Knucklebones</h1>
-				<p class="text-slate-400 mb-8 font-medium">Strategic dice placement. Match dice to multiply, place to destroy.</p>
+				<h1 class="game-title">Knucklebones</h1>
+				<p class="game-subtitle">Strategic dice placement. Match dice to multiply, place to destroy.</p>
 				
-				<div class="space-y-4">
-					<button onclick={createGame} class="w-full py-4 px-6 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-amber-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0">
+				<div class="lobby-actions">
+					<button onclick={createGame} class="btn btn-primary btn-large">
 						Start New Game
 					</button>
-					<div class="relative py-2 leading-none flex items-center justify-center">
-						<div class="w-full border-t border-slate-600/50 absolute"></div>
-						<span class="bg-slate-800 z-10 px-4 text-xs font-semibold text-slate-500 uppercase tracking-widest relative">or</span>
+					<div class="divider">
+						<span>or</span>
 					</div>
-					<button onclick={joinGame} class="w-full py-4 px-6 bg-slate-700/50 hover:bg-slate-700 text-white rounded-xl font-bold text-lg border border-slate-600 hover:border-slate-500 transition-all shadow-md">
+					<button onclick={joinGame} class="btn btn-ghost btn-large">
 						Join Existing Game
 					</button>
 				</div>
@@ -175,91 +174,93 @@
 		</div>
 	{:else}
 		<!-- ─── Active Game Header ─── -->
-		<header class="bg-slate-800/80 backdrop-blur-md border-b border-slate-700/50 p-4 flex justify-between items-center z-10 sticky top-0 shadow-sm">
-			<div class="flex items-center gap-3">
-				<div class="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center shadow-inner">
-					<span class="text-xl">🎲</span>
+		<header class="game-header">
+			<div class="header-left">
+				<div class="header-icon">
+					<span>🎲</span>
 				</div>
-				<div>
-					<h2 class="font-bold text-lg tracking-wide">Knucklebones</h2>
-					<div class="text-xs text-slate-400 font-medium tracking-wide">Phase: <span class="text-amber-400 uppercase">{game.phase}</span></div>
+				<div class="header-info">
+					<h2 class="header-title">Knucklebones</h2>
+					<div class="header-status">Phase: <span class="phase-name">{game.phase}</span></div>
 				</div>
 			</div>
 			
-			<div class="flex items-center gap-4">
-				<button onclick={leaveGame} class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white bg-slate-700/50 hover:bg-red-500/80 rounded-lg transition-colors border border-slate-600/50 hover:border-red-500/50">
+			<div class="header-right">
+				<button onclick={leaveGame} class="btn-leave">
 					Leave Table
 				</button>
 			</div>
 		</header>
 
-		<div class="flex-1 flex flex-col relative bg-slate-900 pb-8 p-4 md:p-8 overflow-y-auto">
+		<div class="game-area">
              {#if game.phase === 'complete' && me}
-                 <div class="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center z-50 rounded-xl">
-                    <h2 class="text-5xl font-black text-white mb-4 shadow-black drop-shadow-2xl tracking-wide uppercase italic">
+                 <div class="outcome-overlay">
+                    <h2 class="outcome-title">
                         {#if game.winnerId === me.id}
-                            <span class="text-amber-400">You Win!</span>
+                            <span class="text-win">You Win!</span>
                         {:else if game.winnerId === 'draw'}
-                            <span class="text-blue-400">It's a Draw!</span>
+                            <span class="text-draw">Draw!</span>
                         {:else}
-                            <span class="text-slate-400">You Lose</span>
+                            <span class="text-lose">You Lose</span>
                         {/if}
                     </h2>
-                    <div class="flex gap-8 mb-8 bg-slate-800/90 p-6 rounded-2xl border border-slate-700">
-                         <div class="text-center">
-                             <div class="text-sm text-slate-400 font-bold uppercase tracking-wider mb-1">Your Score</div>
-                             <div class="text-4xl font-black text-white">{me?.score}</div>
+                    <div class="outcome-stats">
+                         <div class="stat-item">
+                             <div class="stat-label">Your Score</div>
+                             <div class="stat-value">{me?.score}</div>
                          </div>
-                         <div class="w-px bg-slate-700"></div>
-                         <div class="text-center">
-                             <div class="text-sm text-slate-400 font-bold uppercase tracking-wider mb-1">Opponent</div>
-                             <div class="text-4xl font-black text-white">{opponent?.score || 0}</div>
+                         <div class="stat-divider"></div>
+                         <div class="stat-item">
+                             <div class="stat-label">Opponent</div>
+                             <div class="stat-value">{opponent?.score || 0}</div>
                          </div>
                     </div>
-                    <button onclick={leaveGame} class="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold rounded-xl shadow-xl hover:shadow-amber-500/25 transition-all text-xl transform hover:-translate-y-1 active:translate-y-0">
+                    <button onclick={leaveGame} class="btn btn-primary btn-large back-btn">
                         Back to Lobby
                     </button>
                 </div>
              {/if}
 
 			{#if isWaiting}
-                <div class="flex-1 flex items-center justify-center">
-                    <div class="animate-pulse flex flex-col items-center">
-                        <div class="w-16 h-16 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mb-6"></div>
-                        <span class="text-xl font-medium text-slate-400">Waiting for opponent...</span>
+                <div class="waiting-area">
+                    <div class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <span class="loading-text">Waiting for opponent...</span>
                     </div>
                 </div>
             {:else if me && opponent}
-                <div class="max-w-4xl mx-auto w-full flex flex-col gap-12 relative">
+                <div class="game-layout">
 
                     <!-- Center active/turn indicator area -->
-                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full md:w-auto flex flex-col items-center pointer-events-none">
-                         <div class="bg-slate-800/90 backdrop-blur-md p-4 rounded-3xl shadow-2xl border border-slate-700/50 flex flex-col items-center gap-2 pointer-events-auto">
+                    <div class="turn-indicator">
+                         <div class="turn-card">
                               
-                              <div class={`text-sm font-bold tracking-widest uppercase px-3 py-1 rounded-full ${isMyTurn ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700 text-slate-400'}`}>
+                              <div class="turn-badge" class:my-turn={isMyTurn}>
                                   {isMyTurn ? 'Your Turn' : "Opponent's Turn"}
                               </div>
                               
-                              {#if game.currentRoll !== null}
-                                  <div class={`w-16 h-16 rounded-2xl border-2 flex items-center justify-center text-3xl font-black ${getDieColor(game.currentRoll)}`}>
-                                      {game.currentRoll}
-                                  </div>
-                              {:else if isMyTurn}
-                                   <div class="w-16 h-16 rounded-2xl border-2 border-dashed border-slate-600 bg-slate-800/50 flex items-center justify-center">
-                                       <span class="text-2xl opacity-50 text-slate-400">?</span>
-                                   </div>
-                              {:else}
-                                  <div class="w-16 h-16 rounded-2xl border-2 border-slate-700 bg-slate-800 flex items-center justify-center animate-pulse">
-                                      <span class="text-2xl text-slate-600">🎲</span>
-                                  </div>
-                              {/if}
+                              <div class="current-die-display">
+                                  {#if game.currentRoll !== null}
+                                      <div class={`die die-large ${getDieColorClass(game.currentRoll)}`}>
+                                          {game.currentRoll}
+                                      </div>
+                                  {:else if isMyTurn}
+                                       <div class="die die-large die-placeholder">
+                                           <span>?</span>
+                                       </div>
+                                  {:else}
+                                      <div class="die die-large die-waiting">
+                                          <span>🎲</span>
+                                      </div>
+                                  {/if}
+                              </div>
 
                               {#if isMyTurn && game.currentRoll === null}
-                                <button onclick={() => doAction('roll')} class="mt-2 px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl shadow-lg transition-all text-sm w-full">
+                                <button onclick={() => doAction('roll')} class="btn btn-primary roll-btn">
                                     Roll Die
                                 </button>
                               {:else if isMyTurn}
-                                <div class="mt-2 text-xs text-slate-400 font-medium text-center">
+                                <div class="turn-hint">
                                     Select a column<br>on your board
                                 </div>
                               {/if}
@@ -267,36 +268,33 @@
                     </div>
 
                     <!-- Opponent Board (Top) -->
-                    <div class={`flex flex-col items-center transition-opacity duration-300 ${isMyTurn ? 'opacity-50' : 'opacity-100'}`}>
-                        <div class="flex justify-between items-end w-full max-w-sm mb-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-slate-700 flex items-center justify-center text-lg font-bold shadow-inner border border-slate-600/50">
-                                    🤖
-                                </div>
-                                <div class="font-extrabold text-lg text-slate-200">{opponent.name}</div>
+                    <div class="board-container opponent-board" class:inactive={isMyTurn}>
+                        <div class="board-header">
+                            <div class="player-info">
+                                <div class="player-avatar">🤖</div>
+                                <div class="player-name">{opponent.name}</div>
                             </div>
-                            <div class="text-3xl font-black text-slate-300 drop-shadow-md">{opponent.score}</div>
+                            <div class="board-score">{opponent.score}</div>
                         </div>
                         
                         <!-- Column Scores -->
-                        <div class="flex gap-4 mb-2 max-w-sm w-full px-2">
+                        <div class="column-scores">
                              {#each opponent.columnScores as score}
-                                 <div class="flex-1 text-center font-bold text-amber-500/80 text-lg">{score > 0 ? score : '-'}</div>
+                                 <div class="col-score">{score > 0 ? score : '-'}</div>
                              {/each}
                         </div>
 
-                        <!-- Board Grid (Reverse row order for opponent so bottom faces center) -->
-                        <div class="flex gap-4 bg-slate-800/50 p-4 rounded-3xl border border-slate-700/50 shadow-inner max-w-sm w-full">
+                        <!-- Board Grid -->
+                        <div class="grid-card">
                             {#each [0, 1, 2] as col}
-                                 <div class="flex-1 flex flex-col gap-2">
-                                     <!-- Opponent rows: 2, 1, 0 -> 0 is bottom visually for them, closest to center. We stored them such that indexing doesn't strictly matter as long as rendering is consistent. Let's assume index 0 is bottom (first played), index 2 is top. So we render 2 then 1 then 0. -->
+                                 <div class="board-column">
                                      {#each [2, 1, 0] as row}
                                           {#if opponent.board[col][row] !== null}
-                                              <div class={`aspect-square w-full rounded-2xl border-2 flex items-center justify-center text-2xl font-black ${getDieColor(opponent.board[col][row])}`}>
+                                              <div class={`die die-normal ${getDieColorClass(opponent.board[col][row])}`}>
                                                   {opponent.board[col][row]}
                                               </div>
                                           {:else}
-                                              <div class="aspect-square w-full rounded-2xl border-2 border-slate-700/50 bg-slate-800/30"></div>
+                                              <div class="die-slot"></div>
                                           {/if}
                                      {/each}
                                  </div>
@@ -304,32 +302,32 @@
                         </div>
                     </div>
 
-                    <div class="h-16 md:h-32"></div> <!-- Spacer for center element -->
+                    <div class="layout-spacer"></div>
 
                     <!-- My Board (Bottom) -->
-                    <div class={`flex flex-col items-center transition-opacity duration-300 ${!isMyTurn ? 'opacity-50' : 'opacity-100'}`}>
-                        <!-- Board Grid (My rows 2, 1, 0 -> 2 is top, 0 is bottom closest to me) -->
-                        <div class="flex gap-4 bg-slate-800/80 p-4 rounded-3xl border border-slate-700/80 shadow-2xl max-w-sm w-full relative">
+                    <div class="board-container my-board" class:inactive={!isMyTurn}>
+                        <!-- Board Grid -->
+                        <div class="grid-card interactive">
                             {#each [0, 1, 2] as col}
-                                 <div class={`flex-1 flex flex-col gap-2 relative ${game && isMyTurn && game.currentRoll !== null ? 'cursor-pointer group' : ''}`}
+                                 <div class="board-column"
                                       onclick={() => { if(game && isMyTurn && game.currentRoll !== null) doAction('place', col) }}
                                       role="button"
                                       tabindex="0"
                                       onkeydown={(e) => { if(game && e.key === 'Enter' && isMyTurn && game.currentRoll !== null) doAction('place', col) }}
                                       >
                                      
-                                     <!-- Hover indicator overlay for placing -->
+                                     <!-- Hover indicator overlay -->
                                      {#if game && isMyTurn && game.currentRoll !== null && opponent.board[col].filter(v=>v!==null).length < 3}
-                                         <div class="absolute -inset-2 bg-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 border border-white/10"></div>
+                                         <div class="column-hover-effect"></div>
                                      {/if}
 
                                      {#each [2, 1, 0] as row}
                                           {#if me.board[col][row] !== null}
-                                              <div class={`aspect-square w-full rounded-2xl border-2 flex items-center justify-center text-2xl font-black z-20 ${getDieColor(me.board[col][row])}`}>
+                                              <div class={`die die-normal ${getDieColorClass(me.board[col][row])}`}>
                                                   {me.board[col][row]}
                                               </div>
                                           {:else}
-                                              <div class="aspect-square w-full rounded-2xl border-2 border-slate-700 bg-slate-800 border-dashed z-20 opacity-50 group-hover:border-amber-500/50 group-hover:bg-amber-500/10 transition-colors"></div>
+                                              <div class="die-slot die-slot-interactive"></div>
                                           {/if}
                                      {/each}
                                  </div>
@@ -337,20 +335,18 @@
                         </div>
 
                         <!-- Column Scores -->
-                        <div class="flex gap-4 mt-3 mb-4 max-w-sm w-full px-2">
+                        <div class="column-scores my-col-scores">
                              {#each me.columnScores as score}
-                                 <div class="flex-1 text-center font-bold text-amber-500 text-xl drop-shadow-sm">{score > 0 ? score : '-'}</div>
+                                 <div class="col-score">{score > 0 ? score : '-'}</div>
                              {/each}
                         </div>
 
-                        <div class="flex justify-between items-start w-full max-w-sm bg-slate-800/90 p-4 rounded-2xl shadow-xl border border-slate-700/50">
-                             <div class="flex items-center gap-4">
-                                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-2xl font-bold shadow-inner border border-slate-500/50">
-                                    👤
-                                </div>
-                                <div class="font-extrabold text-xl text-white tracking-wide">{me.name}</div>
+                        <div class="board-footer">
+                             <div class="player-info">
+                                <div class="player-avatar me">👤</div>
+                                <div class="player-name">{me.name}</div>
                             </div>
-                            <div class="text-4xl font-black text-white drop-shadow-md">{me.score}</div>
+                            <div class="board-score">{me.score}</div>
                         </div>
                     </div>
 
@@ -359,3 +355,288 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+    .knucklebones-container {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* Shared Styles with Blackjack */
+    .error-toast {
+        position: absolute;
+        top: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: var(--danger);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 9999px;
+        box-shadow: var(--shadow-lg);
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(4px);
+    }
+
+    .error-title { font-weight: bold; }
+    .close-error { background: none; color: white; margin-left: 0.5rem; }
+
+    /* Lobby */
+    .lobby-screen {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        background: radial-gradient(ellipse at top, #451a03, var(--bg-primary), #000);
+    }
+
+    .lobby-card {
+        max-width: 28rem;
+        width: 100%;
+        background-color: rgba(30, 41, 59, 0.5);
+        padding: 2.5rem;
+        border-radius: 1.5rem;
+        box-shadow: var(--shadow-lg);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(12px);
+        text-align: center;
+    }
+
+    .game-icon {
+        width: 5rem;
+        height: 5rem;
+        background-color: rgba(245, 158, 11, 0.2);
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2.5rem;
+    }
+
+    .game-title {
+        font-size: 2.25rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(to bottom right, #fff, var(--gold));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .game-subtitle {
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+        font-weight: 500;
+    }
+
+    .lobby-actions { display: flex; flex-direction: column; gap: 1rem; }
+    .btn-large { padding: 1rem 1.5rem; font-size: 1.125rem; width: 100%; border-radius: 0.75rem; }
+    
+    .divider {
+        position: relative;
+        padding: 0.5rem 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .divider::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .divider span {
+        background-color: #1e293b;
+        z-index: 10;
+        padding: 0 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+    }
+
+    /* Game Header */
+    .game-header {
+        background-color: rgba(30, 41, 59, 0.8);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 10;
+        position: sticky;
+        top: 0;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 0.75rem; }
+    .header-icon {
+        width: 2.5rem; height: 2.5rem;
+        background: linear-gradient(to bottom right, var(--gold), #d97706);
+        border-radius: 0.5rem;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.25rem;
+    }
+    .header-title { font-weight: bold; font-size: 1.125rem; }
+    .header-status { font-size: 0.75rem; color: var(--text-secondary); }
+    .phase-name { color: var(--gold); text-transform: uppercase; }
+    .btn-leave {
+        padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600;
+        color: var(--text-secondary); background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.5rem;
+    }
+    .btn-leave:hover { color: white; background-color: var(--danger); }
+
+    /* Game Area */
+    .game-area {
+        flex: 1; display: flex; flex-direction: column;
+        padding: 1rem; overflow-y: auto; position: relative;
+    }
+
+    .waiting-area { flex: 1; display: flex; align-items: center; justify-content: center; }
+    .loading-state { display: flex; flex-direction: column; align-items: center; transition: opacity 0.5s; }
+    .loading-spinner {
+        width: 4rem; height: 4rem; border: 4px solid rgba(245, 158, 11, 0.2);
+        border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite;
+        margin-bottom: 1.5rem;
+    }
+    .loading-text { font-size: 1.25rem; color: var(--text-secondary); font-weight: 500; }
+
+    /* Outcome Overlay */
+    .outcome-overlay {
+        position: absolute; inset: 0; background: rgba(0,0,0,0.8);
+        backdrop-filter: blur(8px); z-index: 100; display: flex;
+        flex-direction: column; align-items: center; justify-content: center;
+        padding: 2rem;
+    }
+    .outcome-title { font-size: 4rem; font-weight: 900; margin-bottom: 1.5rem; text-transform: uppercase; font-style: italic; }
+    .text-win { color: var(--gold); }
+    .text-lose { color: var(--text-muted); }
+    .text-draw { color: #60a5fa; }
+    
+    .outcome-stats {
+        display: flex; gap: 3rem; background: rgba(30, 41, 59, 0.9);
+        padding: 1.5rem 2.5rem; border-radius: 1.5rem; border: 1px solid var(--bg-card-hover);
+        margin-bottom: 2.5rem;
+    }
+    .stat-item { text-align: center; }
+    .stat-label { font-size: 0.875rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; }
+    .stat-value { font-size: 2.5rem; font-weight: 900; }
+    .stat-divider { width: 1px; background: var(--bg-card-hover); }
+    .back-btn { max-width: 200px; }
+
+    /* Main Game Layout */
+    .game-layout {
+        max-width: 56rem; width: 100%; margin: 0 auto;
+        display: flex; flex-direction: column; gap: 3rem;
+        position: relative;
+    }
+
+    /* Turn Indicator (Center) */
+    .turn-indicator {
+        position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%, -50%); z-index: 20;
+        width: 100%; max-width: 200px;
+    }
+    .turn-card {
+        background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(12px);
+        padding: 1rem; border-radius: 1.5rem; box-shadow: var(--shadow-lg);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+    }
+    .turn-badge {
+        font-size: 0.75rem; font-weight: bold; text-transform: uppercase;
+        padding: 0.25rem 0.75rem; border-radius: 9999px;
+        background: var(--bg-elevated); color: var(--text-muted);
+        letter-spacing: 0.05em;
+    }
+    .turn-badge.my-turn { background: rgba(245, 158, 11, 0.2); color: var(--gold); }
+    
+    .current-die-display { margin: 0.5rem 0; }
+    .die {
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 1rem; font-weight: 900; border: 2px solid rgba(255, 255, 255, 0.1);
+        box-shadow: var(--shadow);
+    }
+    .die-large { width: 4.5rem; height: 4.5rem; font-size: 2.25rem; }
+    .die-normal { width: 100%; aspect-ratio: 1; font-size: 1.5rem; }
+    
+    .die-placeholder { border-style: dashed; opacity: 0.5; color: var(--text-muted); }
+    .die-waiting { animation: pulse 2s infinite; color: var(--text-muted); font-size: 1.5rem; }
+    
+    .roll-btn { margin-top: 0.5rem; width: 100%; }
+    .turn-hint { font-size: 0.75rem; color: var(--text-muted); text-align: center; }
+
+    /* Boards */
+    .board-container { display: flex; flex-direction: column; align-items: center; transition: opacity 0.3s; }
+    .board-container.inactive { opacity: 0.5; }
+    
+    .board-header, .board-footer {
+        display: flex; justify-content: space-between; align-items: center;
+        width: 100%; max-width: 20rem; margin-bottom: 1rem;
+    }
+    .board-footer { margin-top: 1rem; margin-bottom: 0; padding: 1rem; background: var(--bg-card); border-radius: 1rem; }
+    
+    .player-info { display: flex; align-items: center; gap: 0.75rem; }
+    .player-avatar {
+        width: 2.5rem; height: 2.5rem; background: var(--bg-elevated);
+        border-radius: 0.75rem; display: flex; align-items: center; justify-content: center;
+        font-weight: bold; border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .player-avatar.me { background: linear-gradient(135deg, #4b5563, #1f2937); }
+    .player-name { font-weight: 800; }
+    .board-score { font-size: 2rem; font-weight: 900; color: var(--text-secondary); }
+
+    .column-scores { display: flex; gap: 1rem; width: 100%; max-width: 20rem; padding: 0 0.5rem; margin-bottom: 0.5rem; }
+    .col-score { flex: 1; text-align: center; font-weight: 900; font-size: 1.125rem; color: var(--gold); opacity: 0.8; }
+    .my-col-scores { margin-top: 0.75rem; margin-bottom: 1rem; }
+
+    .grid-card {
+        display: flex; gap: 1rem; background: rgba(30, 41, 59, 0.4);
+        padding: 1rem; border-radius: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.05);
+        width: 100%; max-width: 20rem;
+    }
+    .grid-card.interactive { background: rgba(30, 41, 59, 0.7); border-color: rgba(255, 255, 255, 0.1); box-shadow: var(--shadow-lg); }
+
+    .board-column { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; position: relative; }
+    .interactive .board-column { cursor: pointer; border-radius: 0.75rem; }
+    
+    .column-hover-effect {
+        position: absolute; inset: -0.5rem; background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem;
+        opacity: 0; transition: opacity 0.2s; pointer-events: none;
+    }
+    .board-column:hover .column-hover-effect { opacity: 1; }
+
+    .die-slot {
+        aspect-ratio: 1; width: 100%; border-radius: 0.75rem;
+        background: rgba(15, 23, 42, 0.3); border: 2px dashed rgba(255, 255, 255, 0.05);
+    }
+    .die-slot-interactive { border-color: rgba(255, 255, 255, 0.1); }
+    .board-column:hover .die-slot-interactive { border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.05); }
+
+    /* Die Contextual Colors */
+    .die-active { background: white; color: #1e293b; border: 1px solid #e2e8f0; }
+    .die-v1 { background: linear-gradient(135deg, #f8fafc, #cbd5e1); color: #1e293b; }
+    .die-v2 { background: linear-gradient(135deg, #dbeafe, #93c5fd); color: #1e3a8a; }
+    .die-v3 { background: linear-gradient(135deg, #d1fae5, #6ee7b7); color: #064e3b; }
+    .die-v4 { background: linear-gradient(135deg, #fef3c7, #fcd34d); color: #78350f; }
+    .die-v5 { background: linear-gradient(135deg, #ffe4e6, #fda4af); color: #881337; }
+    .die-v6 { background: linear-gradient(135deg, #f3e8ff, #d8b4fe); color: #581c87; }
+
+    .layout-spacer { height: 6rem; flex-shrink: 0; }
+
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>

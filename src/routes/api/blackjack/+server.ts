@@ -4,6 +4,7 @@ import type { BlackjackGameState } from '$lib/types';
 import { verifyToken, getUserName } from '$lib/server/auth';
 import crypto from 'node:crypto'; // Assuming standard crypto import, change if needed
 import { getDb } from '$lib/server/db'; // Import this if needed or adapt the map
+import { addBlock } from '$lib/blockchain/chain';
 
 // Simple in-memory store for now, like Dice
 // Or match Poker's single game_state DB table?
@@ -46,7 +47,7 @@ export async function POST({ request, cookies }) {
 
     const { userId, name: userName } = decoded;
 
-    const { action, amount } = await request.json();
+    const { action, amount, payload } = await request.json();
 
     if (action === 'create') {
         const existing = loadGame();
@@ -57,8 +58,9 @@ export async function POST({ request, cookies }) {
 			}
 		}
 
+        const { stakes } = payload || {};
         const dbName = getUserName(userId);
-        const game = createGame(userId, dbName || userName, 'waiting', 'Waiting User');
+        const game = createGame(userId, dbName || userName, 'waiting', 'Waiting User', stakes || 'full');
         saveGame(game);
         return json({ success: true, game: getPlayerView(game, userId) });
     }
@@ -101,6 +103,23 @@ export async function POST({ request, cookies }) {
         }
 
         game = performAction(game, userId, action, amount);
+        
+        const { over, winner, loser } = isGameOver(game);
+        if (over && winner && loser && game.stakes !== 'none' && !(game as any).resultsRecorded) {
+            const points = game.stakes === 'full' ? 1 : 0.5;
+            const blockData: any = { 
+                type: 'blackjack_win', 
+                winner: winner,
+                loser: loser,
+                description: `Won Blackjack (${points} pts)`,
+                approvedBy: [game.players[0].id, game.players[1].id].filter(id => id !== 'waiting'), 
+                timestamp: Date.now(),
+                amount: points
+            };
+            await addBlock(blockData);
+            (game as any).resultsRecorded = true;
+        }
+
         saveGame(game);
         return json({ success: true, game: getPlayerView(game, userId) });
 

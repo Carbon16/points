@@ -58,221 +58,257 @@ export function calculateScore(hand: Card[]): number {
     return score;
 }
 
-export function createGame(player1Id: string, player1Name: string, player2Id: string, player2Name: string): BlackjackGameState {
+export function createGame(playerId: string, playerName: string, stakes: 'full' | 'half' | 'none' = 'full'): BlackjackGameState {
 	return {
 		id: crypto.randomUUID(),
-		phase: 'betting',
+		phase: 'waiting',
 		players: [
 			{
-				id: player1Id,
-				name: player1Name,
-				chips: 1000,
+				id: playerId,
+				name: playerName,
+				chips: 250,
 				hand: [],
 				currentBet: 0,
-				status: 'betting',
+				status: 'waiting',
                 score: 0
 			},
-			{
-				id: player2Id,
-				name: player2Name,
-				chips: 1000,
+            {
+				id: 'waiting',
+				name: 'Waiting User',
+				chips: 250,
 				hand: [],
 				currentBet: 0,
-				status: 'betting',
+				status: 'waiting',
                 score: 0
 			}
 		],
-		dealerHand: [],
-        dealerScore: 0,
 		deck: createDeck(),
 		handNumber: 1,
+        currentPlayerIndex: 0,
+        pot: 0,
 		winnerIds: [],
         pushIds: [],
-        loserIds: []
+        loserIds: [],
+        stakes
 	};
 }
 
 export function joinGame(game: BlackjackGameState, playerId: string, playerName: string): BlackjackGameState {
-	if (game.phase !== 'betting' && game.handNumber === 1) throw new Error('Game already started');
+	if (game.phase !== 'waiting') throw new Error('Game already started');
 	
 	const emptySlotIndex = game.players.findIndex(p => p.id === 'waiting');
-	if (emptySlotIndex === -1) throw new Error('Game is full');
+	if (emptySlotIndex === -1) {
+        if (game.players.some(p => p.id === playerId)) return game;
+        throw new Error('Game is full');
+    }
 
 	game.players[emptySlotIndex].id = playerId;
 	game.players[emptySlotIndex].name = playerName;
 	
+    // Start the first hand
+    startNewHand(game);
+
 	return game;
 }
 
-function dealInitialCards(game: BlackjackGameState) {
+function startNewHand(game: BlackjackGameState) {
     if (game.deck.length < 15) {
         game.deck = createDeck();
     }
 
     for (const player of game.players) {
-        if (player.currentBet > 0) {
-            player.hand = [game.deck.pop()!, game.deck.pop()!];
-            player.score = calculateScore(player.hand);
-            if (player.score === 21) {
-                player.status = 'blackjack';
-            } else {
-                player.status = 'playing';
-            }
-        } else {
-             // If a player didn't bet, they sit out this hand
-            player.status = 'stood';
-        }
+        player.hand = [game.deck.pop()!, game.deck.pop()!];
+        player.score = calculateScore(player.hand);
+        player.status = 'betting';
+        player.currentBet = 0;
     }
 
-    game.dealerHand = [game.deck.pop()!, game.deck.pop()!];
-    // We calculate dealer score later to keep hole card hidden if needed,
-    // but typically we can calculate it server-side.
-    game.dealerScore = calculateScore(game.dealerHand);
-
-    game.phase = 'playing';
-
-    checkPhaseTransition(game);
+    game.phase = 'betting';
+    game.currentPlayerIndex = 0;
+    game.pot = 0;
+    game.winnerIds = [];
+    game.pushIds = [];
+    game.loserIds = [];
+    game.winReason = undefined;
 }
 
-function checkPhaseTransition(game: BlackjackGameState) {
-    if (game.phase === 'betting') {
-        const allBet = game.players.every(p => p.status !== 'betting');
-        // Only deal if someone actually placed a bet
-        const someoneBet = game.players.some(p => p.currentBet > 0);
-        
-        if (allBet && someoneBet) {
-            dealInitialCards(game);
-        } else if (allBet && !someoneBet) {
-             // Everyone skipped? Just end hand.
-             endHand(game);
-        }
-    } else if (game.phase === 'playing') {
-        const allDonePlaying = game.players.every(p => 
-            p.status === 'stood' || p.status === 'busted' || p.status === 'blackjack' || p.currentBet === 0
-        );
+function nextTurnBetting(game: BlackjackGameState) {
+    const p1 = game.players[0];
+    const p2 = game.players[1];
 
-        if (allDonePlaying) {
-            game.phase = 'dealer-turn';
-            playDealer(game);
-        }
+    if (p1.status === 'folded' || p2.status === 'folded') {
+        endHand(game);
+        return;
+    }
+
+    const betsMatch = p1.currentBet === p2.currentBet;
+    const bothActed = p1.status !== 'betting' && p2.status !== 'betting'; // If they took an action this round
+
+    if (bothActed && betsMatch) {
+        // Move to playing phase
+        if (p1.score === 21) p1.status = 'blackjack';
+        else p1.status = 'playing';
+
+        if (p2.score === 21) p2.status = 'blackjack';
+        else p2.status = 'playing';
+
+        game.phase = 'playing';
+        game.currentPlayerIndex = 0;
+        checkNextTurnPlaying(game);
+    } else {
+        game.currentPlayerIndex = (game.currentPlayerIndex + 1) % 2;
     }
 }
 
-function playDealer(game: BlackjackGameState) {
-    // Dealer must hit on 16 or lower, stand on 17+
-    while (game.dealerScore < 17) {
-        if (game.deck.length < 5) game.deck = createDeck();
-        game.dealerHand.push(game.deck.pop()!);
-        game.dealerScore = calculateScore(game.dealerHand);
+function checkNextTurnPlaying(game: BlackjackGameState) {
+    // If current player is done, move to next
+    const p1 = game.players[0];
+    const p2 = game.players[1];
+
+    const isDone = (p: BlackjackPlayerState) => p.status === 'stood' || p.status === 'busted' || p.status === 'blackjack' || p.status === 'folded';
+
+    if (game.currentPlayerIndex === 0 && isDone(p1)) {
+        game.currentPlayerIndex = 1;
     }
 
-    endHand(game);
+    if (game.currentPlayerIndex === 1 && isDone(p2)) {
+        // Both done, go to complete
+        endHand(game);
+    }
 }
 
 function endHand(game: BlackjackGameState) {
     game.phase = 'complete';
+    const p1 = game.players[0];
+    const p2 = game.players[1];
 
-    const dealerBust = game.dealerScore > 21;
-    const dealerBlackjack = game.dealerHand.length === 2 && game.dealerScore === 21;
+    // Pot is sum of bets
+    game.pot = p1.currentBet + p2.currentBet;
+    p1.chips -= p1.currentBet;
+    p2.chips -= p2.currentBet;
 
-    for (const player of game.players) {
-        if (player.currentBet === 0) continue;
+    // Folding logic
+    if (p1.status === 'folded') {
+        game.winnerIds.push(p2.id);
+        game.loserIds.push(p1.id);
+        p2.chips += game.pot;
+        game.winReason = `${p2.name} wins by default (opponent folded)`;
+        return;
+    }
+    if (p2.status === 'folded') {
+        game.winnerIds.push(p1.id);
+        game.loserIds.push(p2.id);
+        p1.chips += game.pot;
+        game.winReason = `${p1.name} wins by default (opponent folded)`;
+        return;
+    }
 
-        if (player.status === 'busted') {
-            game.loserIds.push(player.id);
-        } else if (player.status === 'blackjack') {
-             if (dealerBlackjack) {
-                 // Push on double blackjack
-                 player.chips += player.currentBet;
-                 game.pushIds.push(player.id);
-             } else {
-                 // Blackjack pays 3:2 normally, we'll do 2:1 for simplicity or just 3:2
-                 const winAmount = Math.floor(player.currentBet * 2.5);
-                 player.chips += winAmount;
-                 game.winnerIds.push(player.id);
-             }
-        } else {
-             // Player stood
-             if (dealerBust || player.score > game.dealerScore) {
-                 player.chips += player.currentBet * 2;
-                 game.winnerIds.push(player.id);
-             } else if (player.score === game.dealerScore) {
-                 player.chips += player.currentBet;
-                 game.pushIds.push(player.id);
-             } else {
-                 game.loserIds.push(player.id);
-             }
-        }
+    const getHandValue = (p: BlackjackPlayerState) => {
+        if (p.status === 'busted') return -1;
+        if (p.status === 'blackjack') return 22; // Treat BJ as higher than 21
+        return p.score;
+    };
+
+    const val1 = getHandValue(p1);
+    const val2 = getHandValue(p2);
+
+    if (val1 > val2) {
+        game.winnerIds.push(p1.id);
+        game.loserIds.push(p2.id);
+        p1.chips += game.pot;
+        game.winReason = val1 === 22 ? "Blackjack!" : "High hand wins";
+    } else if (val2 > val1) {
+        game.winnerIds.push(p2.id);
+        game.loserIds.push(p1.id);
+        p2.chips += game.pot;
+        game.winReason = val2 === 22 ? "Blackjack!" : "High hand wins";
+    } else {
+        // Tie
+        game.pushIds.push(p1.id, p2.id);
+        p1.chips += Math.floor(game.pot / 2);
+        p2.chips += Math.ceil(game.pot / 2); // Split
+        game.winReason = "Push (Tie)";
     }
 }
 
 export function performAction(game: BlackjackGameState, playerId: string, action: BlackjackAction, amount?: number): BlackjackGameState {
-	const playerOption = game.players.find((p) => p.id === playerId);
-	if (!playerOption) throw new Error('Player not in game');
-    const player = playerOption;
+	const player = game.players.find((p) => p.id === playerId);
+	if (!player) throw new Error('Player not in game');
 
-	if (action === 'bet') {
-        if (game.phase !== 'betting') throw new Error('Not betting phase');
-        if (player.status !== 'betting') throw new Error('Already bet');
+    const pIndex = game.players.findIndex(p => p.id === playerId);
+    if (game.currentPlayerIndex !== pIndex && game.phase !== 'waiting') {
+        throw new Error('Not your turn');
+    }
 
-        const betAmount = amount || 0;
-        if (betAmount > player.chips) throw new Error('Not enough chips');
-        
-        player.chips -= betAmount;
-        player.currentBet = betAmount;
-        
-        // If bet is 0, they skip the hand
-        player.status = betAmount > 0 ? 'playing' : 'stood';
-        
-        checkPhaseTransition(game);
+    const opponent = game.players[1 - pIndex];
 
-	} else if (action === 'hit') {
-        if (game.phase !== 'playing') throw new Error('Not playing phase');
-        if (player.status !== 'playing') throw new Error('Cannot hit now');
-
-        if (game.deck.length < 5) game.deck = createDeck();
-        player.hand.push(game.deck.pop()!);
-        player.score = calculateScore(player.hand);
-
-        if (player.score > 21) {
-            player.status = 'busted';
+	if (game.phase === 'betting') {
+        if (action === 'fold') {
+            player.status = 'folded';
+            game.pot += player.currentBet;
+            nextTurnBetting(game);
+        } else if (action === 'check') {
+            if (player.currentBet < opponent.currentBet) throw new Error('Cannot check, must call or fold');
+            player.status = 'stood'; // Temporary status to mark action taken
+            nextTurnBetting(game);
+        } else if (action === 'call') {
+            const diff = opponent.currentBet - player.currentBet;
+            if (diff <= 0) throw new Error('Nothing to call');
+            if (player.chips < diff) throw new Error('Not enough chips');
+            player.currentBet += diff;
+            player.status = 'stood';
+            nextTurnBetting(game);
+        } else if (action === 'bet') {
+            const betAmount = amount || 0;
+            if (betAmount <= 0) throw new Error('Invalid bet amount');
+            if (betAmount > player.chips) throw new Error('Not enough chips');
+            player.currentBet += betAmount;
+            player.status = 'stood';
+            nextTurnBetting(game);
+        } else {
+            throw new Error('Invalid action for betting phase');
         }
 
-        checkPhaseTransition(game);
+    } else if (game.phase === 'playing') {
+        if (action === 'hit') {
+            if (game.deck.length < 5) game.deck = createDeck();
+            player.hand.push(game.deck.pop()!);
+            player.score = calculateScore(player.hand);
 
-    } else if (action === 'stand') {
-        if (game.phase !== 'playing') throw new Error('Not playing phase');
-        if (player.status !== 'playing') throw new Error('Cannot stand now');
+            if (player.score > 21) {
+                player.status = 'busted';
+            }
+            checkNextTurnPlaying(game);
 
-        player.status = 'stood';
-        checkPhaseTransition(game);
+        } else if (action === 'stand') {
+            player.status = 'stood';
+            checkNextTurnPlaying(game);
 
-    } else if (action === 'double') {
-         if (game.phase !== 'playing') throw new Error('Not playing phase');
-         if (player.status !== 'playing' || player.hand.length !== 2) throw new Error('Cannot double down now');
-         if (player.chips < player.currentBet) throw new Error('Not enough chips to double');
+        } else if (action === 'double') {
+             if (player.hand.length !== 2) throw new Error('Cannot double down now');
+             if (player.chips < player.currentBet) throw new Error('Not enough chips');
 
-         player.chips -= player.currentBet;
-         player.currentBet *= 2;
-         
-         if (game.deck.length < 5) game.deck = createDeck();
-         player.hand.push(game.deck.pop()!);
-         player.score = calculateScore(player.hand);
+             player.currentBet *= 2;
+             if (game.deck.length < 5) game.deck = createDeck();
+             player.hand.push(game.deck.pop()!);
+             player.score = calculateScore(player.hand);
 
-         if (player.score > 21) {
-             player.status = 'busted';
-         } else {
-             player.status = 'stood'; // Force stand after double
-         }
+             if (player.score > 21) player.status = 'busted';
+             else player.status = 'stood';
 
-         checkPhaseTransition(game);
+             checkNextTurnPlaying(game);
+        } else {
+            throw new Error('Invalid action for playing phase');
+        }
+    } else {
+        throw new Error('Game not in an actionable phase');
     }
 
 	return game;
 }
 
 export function isGameOver(game: BlackjackGameState): { over: boolean; winner?: string; loser?: string } {
-	if (game.phase === 'betting' || game.phase === 'playing' || game.phase === 'dealer-turn') {
+	if (game.phase !== 'complete') {
 		return { over: false };
 	}
 
@@ -284,9 +320,13 @@ export function isGameOver(game: BlackjackGameState): { over: boolean; winner?: 
 	}
     
     if (over) {
-        // Find whoever has the most chips
-        const sorted = [...game.players].sort((a,b) => b.chips - a.chips);
-        return { over: true, winner: sorted[0].id, loser: sorted[1].id };
+        const activePlayers = game.players.filter(p => p.id !== 'waiting');
+        const sorted = [...activePlayers].sort((a,b) => b.chips - a.chips);
+        if (sorted.length > 1) {
+            return { over: true, winner: sorted[0].id, loser: sorted[1].id };
+        } else if (sorted.length === 1) {
+            return { over: true, loser: sorted[0].id };
+        }
     }
 
 	return { over: false };
@@ -296,19 +336,11 @@ export function startNextHand(game: BlackjackGameState): BlackjackGameState {
     if (game.phase !== 'complete') throw new Error('Current hand not complete');
 
 	for (const player of game.players) {
-		player.hand = [];
 		player.currentBet = 0;
         player.score = 0;
-		player.status = 'betting';
 	}
-
-    game.dealerHand = [];
-    game.dealerScore = 0;
-	game.winnerIds = [];
-    game.loserIds = [];
-    game.pushIds = [];
-	game.phase = 'betting';
     game.handNumber++;
+    startNewHand(game);
 
 	return game;
 }
@@ -316,13 +348,22 @@ export function startNextHand(game: BlackjackGameState): BlackjackGameState {
 export function getPlayerView(game: BlackjackGameState, playerId: string): BlackjackGameState {
 	const clone: BlackjackGameState = JSON.parse(JSON.stringify(game));
     
-    // Hide dealer's hole card if playing
-	if (clone.phase === 'playing') {
-		if (clone.dealerHand.length > 0) {
-            clone.dealerHand[0] = { suit: 'hearts', rank: '2' } as any; // Dummy hidden card
-            (clone.dealerHand[0] as any).hidden = true;
-            // Recalculate shown score for dealer
-            clone.dealerScore = calculateScore([clone.dealerHand[1]]); 
+	if (clone.phase === 'betting' || clone.phase === 'playing') {
+        // HIDDEN OPPONENT CARDS logic (User Request)
+        // Players can only see the first card of the other's hand before the end of the game
+        for (const player of clone.players) {
+            if (player.id !== playerId && player.id !== 'waiting' && player.hand.length > 0) {
+                // Keep the first card, hide the rest
+                const visibleCard = player.hand[0];
+                const hiddenCardsCount = player.hand.length - 1;
+                
+                const hiddenHand = [visibleCard];
+                for (let i = 0; i < hiddenCardsCount; i++) {
+                     hiddenHand.push({ suit: 'hearts', rank: '2', hidden: true } as any);
+                }
+                player.hand = hiddenHand;
+                player.score = calculateScore([visibleCard]); // Only show score of visible card
+            }
         }
 	}
     

@@ -122,8 +122,8 @@ export interface ApiResponse<T = unknown> {
 }
 
 // ─── Blackjack ────────────────────────────────────────────────────────
-export type BlackjackPhase = 'betting' | 'playing' | 'dealer-turn' | 'complete';
-export type BlackjackAction = 'bet' | 'hit' | 'stand' | 'double';
+export type BlackjackPhase = 'waiting' | 'betting' | 'playing' | 'complete';
+export type BlackjackAction = 'bet' | 'call' | 'check' | 'fold' | 'hit' | 'stand' | 'double';
 
 export interface BlackjackPlayerState {
 	id: string;
@@ -131,7 +131,7 @@ export interface BlackjackPlayerState {
 	chips: number;
 	hand: Card[];
 	currentBet: number;
-	status: 'betting' | 'playing' | 'stood' | 'busted' | 'blackjack';
+	status: 'waiting' | 'betting' | 'playing' | 'stood' | 'busted' | 'blackjack' | 'folded';
 	score: number;
 }
 
@@ -139,14 +139,15 @@ export interface BlackjackGameState {
 	id: string;
 	phase: BlackjackPhase;
 	players: BlackjackPlayerState[];
-	dealerHand: Card[];
-	dealerScore: number;
 	deck: Card[];
 	handNumber: number;
-	winnerIds: string[]; // Players who beat the dealer
-	pushIds: string[];   // Players who tied the dealer
-	loserIds: string[];  // Players who lost to the dealer
+    currentPlayerIndex: number;
+    pot: number;
+	winnerIds: string[]; // Players who beat the dealer and other players
+	pushIds: string[];   // Tie
+	loserIds: string[];  // Lost to dealer or other players
 	winReason?: string;
+    stakes: 'full' | 'half' | 'none';
 }
 
 // ─── Knucklebones ────────────────────────────────────────────────────────

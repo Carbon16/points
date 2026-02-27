@@ -3,13 +3,17 @@
 	import { auth, getAuthHeaders } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
     import type { BlackjackGameState, Card } from '$lib/types';
+	import { fly, scale, fade } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 
 	let game = $state<BlackjackGameState | null>(null);
 	let pollingInterval: ReturnType<typeof setInterval>;
 	let error = $state<string | null>(null);
+    let loading = $state(true);
 
     // Form inputs
     let betAmount = $state(10);
+	let playForPoints = $state(true);
 
 	onMount(() => {
 		loadGame();
@@ -44,15 +48,17 @@
 		} catch (e) {
 			console.error('Failed to load game', e);
 		}
+        loading = false;
 	}
 
 	async function createGame() {
 		error = null;
 		try {
+			const stakes = playForPoints ? 'full' : 'none';
 			const res = await fetch('/api/blackjack', {
 				method: 'POST',
 				headers: { ...getAuthHeaders($auth.token!), 'Content-Type': 'application/json' },
-				body: JSON.stringify({ action: 'create' })
+				body: JSON.stringify({ action: 'create', payload: { stakes } })
 			});
 			const data = await res.json();
 			if (data.success) {
@@ -84,7 +90,7 @@
 		}
 	}
 
-	async function doAction(action: 'bet' | 'hit' | 'stand' | 'double', amount?: number) {
+	async function doAction(action: 'bet' | 'call' | 'check' | 'fold' | 'hit' | 'stand' | 'double', amount?: number) {
 		if (!game) return;
 		error = null;
 
@@ -122,263 +128,538 @@
 	}
 
     async function nextHand() {
-        doAction('next-hand' as any); // Type assertion since it's a special action
+        error = null;
+		try {
+			const res = await fetch('/api/blackjack', {
+				method: 'POST',
+				headers: { ...getAuthHeaders($auth.token!), 'Content-Type': 'application/json' },
+				body: JSON.stringify({ action: 'next-hand' })
+			});
+			const data = await res.json();
+			if (data.success) {
+                if (data.game?.gameOver) {
+                    game = null; // Game completely over
+                } else {
+				    game = data.game;
+                }
+			} else {
+				error = data.error || 'Action failed';
+			}
+		} catch (e) {
+			error = 'Connection failed';
+		}
     }
 
 	// ─── Computed Helpers ───
 	let me = $derived(game?.players.find((p) => p.id === $auth.userId));
 	let opponent = $derived(game?.players.find((p) => p.id !== $auth.userId && p.id !== 'waiting'));
-	let isWaiting = $derived(game?.players.some((p) => p.id === 'waiting'));
+    let isWaiting = $derived(game?.players.some((p) => p.id === 'waiting'));
+    let myIndex = $derived(game?.players.findIndex(p => p.id === $auth.userId));
+    let isMyTurn = $derived(game && game.currentPlayerIndex === myIndex);
+
+    const minBet = 5;
+	const maxBet = $derived(me?.chips || 250);
 
 	// ─── Formatters ───
 	function getSuitSymbol(suit: string) {
-		switch (suit) {
-			case 'hearts': return '♥';
-			case 'diamonds': return '♦';
-			case 'clubs': return '♣';
-			case 'spades': return '♠';
-			default: return '?';
-		}
+		const symbols: Record<string, string> = { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' };
+		return symbols[suit] || suit;
 	}
 
-	function getSuitColor(suit: string) {
-		return suit === 'hearts' || suit === 'diamonds' ? 'text-red-500' : 'text-slate-800';
+	function isRed(suit: string) {
+		return suit === 'hearts' || suit === 'diamonds';
 	}
 </script>
 
-<div class="h-full flex flex-col bg-slate-900 text-slate-100 overflow-hidden font-sans relative">
+<div class="blackjack-page animate-in">
+	<div class="page-header">
+		<button class="btn btn-ghost icon-btn" onclick={() => goto('/casino')} aria-label="Casino Lobby">
+			<ion-icon name="arrow-back-outline"></ion-icon>
+		</button>
+		<h1>🃏 Blackjack</h1>
+		{#if game && game.stakes === 'none'}
+			<span class="badge practice-badge">Practice Mode</span>
+		{/if}
+        {#if game}
+             <button class="btn btn-ghost sm" onclick={leaveGame}>Leave</button>
+        {:else}
+		    <div style="width: 40px;"></div> <!-- Spacer -->
+        {/if}
+	</div>
+
 	{#if error}
-		<div class="absolute top-4 left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-6 py-3 rounded-full shadow-2xl z-50 flex items-center gap-3 animate-fade-in backdrop-blur-sm border border-red-400">
-			<span class="font-bold">Error:</span> {error}
-			<button class="ml-2 hover:bg-red-600 rounded-full p-1 transition-colors" onclick={() => error = null}>✕</button>
+		<div class="toast error" transition:fly={{ y: 50 }}>
+			{error} <button class="close-error" onclick={() => error = null}>✕</button>
 		</div>
 	{/if}
 
-	{#if !game}
+	{#if loading}
+		<p class="loading-text loading">Loading...</p>
+	{:else if !game}
 		<!-- ─── Lobby ─── -->
-		<div class="flex-1 flex flex-col items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black">
-			<div class="max-w-md w-full bg-slate-800/50 p-10 rounded-3xl shadow-2xl border border-slate-700/50 backdrop-blur-md text-center">
-				<div class="w-20 h-20 bg-indigo-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-					<span class="text-4xl">🃏</span>
-				</div>
-				<h1 class="text-4xl font-extrabold mb-2 bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent">Blackjack</h1>
-				<p class="text-slate-400 mb-8 font-medium">Beat the dealer to win chips!</p>
-				
-				<div class="space-y-4">
-					<button onclick={createGame} class="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-indigo-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0">
-						Start New Game
-					</button>
-					<div class="relative py-2 leading-none flex items-center justify-center">
-						<div class="w-full border-t border-slate-600/50 absolute"></div>
-						<span class="bg-slate-800 z-10 px-4 text-xs font-semibold text-slate-500 uppercase tracking-widest relative">or</span>
-					</div>
-					<button onclick={joinGame} class="w-full py-4 px-6 bg-slate-700/50 hover:bg-slate-700 text-white rounded-xl font-bold text-lg border border-slate-600 hover:border-slate-500 transition-all shadow-md">
-						Join Existing Game
-					</button>
-				</div>
+		<div class="lobby card" in:fade>
+			<div class="game-icon">🃏</div>
+            <h2>Blackjack</h2>
+			<p class="lobby-text">Beat the dealer to win chips.</p>
+			
+			<div class="lobby-controls">
+                <label class="toggle-label">
+					<input type="checkbox" bind:checked={playForPoints} />
+					<span class="toggle-text">Play for Points (Stakes)</span>
+				</label>
 			</div>
+
+            <div class="actions">
+                <button class="btn btn-primary" onclick={createGame}>
+                    Start New Game
+                </button>
+                <button class="btn btn-ghost" onclick={joinGame}>
+                    Join Game
+                </button>
+            </div>
+		</div>
+	{:else if isWaiting}
+		<!-- ─── Waiting Room ─── -->
+		<div class="lobby card" in:fade>
+			<h2>Waiting for opponent...</h2>
+            {#if !me}
+                <p class="waiting-text">A player is waiting for you to join.</p>
+                <div class="actions" style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick={joinGame}>
+                        Join Game
+                    </button>
+                </div>
+            {:else}
+                <div class="spinner"></div>
+                <p class="waiting-text">Another player needs to join the table.</p>
+            {/if}
 		</div>
 	{:else}
-		<!-- ─── Active Game Header ─── -->
-		<header class="bg-slate-800/80 backdrop-blur-md border-b border-slate-700/50 p-4 flex justify-between items-center z-10 sticky top-0 shadow-sm">
-			<div class="flex items-center gap-3">
-				<div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-lg flex items-center justify-center shadow-inner">
-					<span class="text-xl">🃏</span>
-				</div>
-				<div>
-					<h2 class="font-bold text-lg tracking-wide">Blackjack</h2>
-					<div class="text-xs text-slate-400 font-medium tracking-wide">Hand #{game.handNumber} • Phase: <span class="text-indigo-300 uppercase">{game.phase}</span></div>
-				</div>
-			</div>
+		<!-- ─── Active Game ─── -->
+		<div class="game-board">
 			
-			<div class="flex items-center gap-4">
-				<button onclick={leaveGame} class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white bg-slate-700/50 hover:bg-red-500/80 rounded-lg transition-colors border border-slate-600/50 hover:border-red-500/50">
-					Leave Table
-				</button>
-			</div>
-		</header>
-
-		<div class="flex-1 flex flex-col relative bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-green-900/40 via-slate-900 to-slate-900">
-			<!-- Table pattern overlay -->
-			<div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
-
-			<!-- ─── Dealer Area ─── -->
-			<div class="flex-1 flex flex-col items-center justify-center p-6 relative">
-				{#if isWaiting}
-					<div class="animate-pulse flex flex-col items-center">
-						<div class="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
-						<span class="text-lg font-medium text-slate-400">Waiting for players to join...</span>
-					</div>
-				{:else}
-                    <div class="flex flex-col items-center">
-                        <div class="mb-2 px-3 py-1 bg-slate-800/80 rounded-full text-sm font-semibold text-slate-300 shadow-sm border border-slate-700/50 shadow-black/50">
-                            Dealer <span class="text-indigo-400 font-bold ml-1">{game.dealerScore > 0 ? game.dealerScore : ''}</span>
-                        </div>
-                        
-                        <div class="flex gap-2">
-                            {#if game.dealerHand.length === 0}
-                                <!-- Card placeholders -->
-                                <div class="w-20 h-28 rounded-lg border-2 border-dashed border-slate-600/50 bg-slate-800/30"></div>
-                                <div class="w-20 h-28 rounded-lg border-2 border-dashed border-slate-600/50 bg-slate-800/30"></div>
-                            {:else}
-                                {#each game.dealerHand as card}
-                                    <div class="w-20 h-28 bg-white rounded-lg shadow-xl flex flex-col items-center justify-center select-none transform transition-transform hover:-translate-y-2 relative border border-slate-200">
-                                         {#if (card as any).hidden}
-                                            <div class="absolute inset-1 rounded-md bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,#334155_5px,#334155_10px)] bg-slate-800 border-2 border-white/10"></div>
-                                         {:else}
-                                            <span class={`text-3xl ${getSuitColor(card.suit)}`}>{getSuitSymbol(card.suit)}</span>
-                                            <span class={`text-xl font-bold mt-1 ${getSuitColor(card.suit)}`}>{card.rank}</span>
-                                         {/if}
-                                    </div>
-                                {/each}
-                            {/if}
-                        </div>
-                    </div>
-				{/if}
-			</div>
-
-			<!-- ─── Player Areas (Other players) ─── -->
-             {#if opponent && opponent.id !== 'waiting'}
-				<div class="absolute top-20 left-6 flex flex-col items-start scale-75 origin-top-left opacity-80">
-					<div class="flex items-center gap-3 mb-2 px-4 py-2 bg-slate-800/80 rounded-full shadow-md border border-slate-700/50">
-						<div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-sm font-bold shadow-inner">👤</div>
-						<div>
-							<div class="font-bold text-slate-200 leading-tight">{opponent.name}</div>
-							<div class="text-xs text-emerald-400 font-semibold tracking-wide">£{opponent.chips} <span class="text-slate-500 ml-1">Bet: £{opponent.currentBet}</span></div>
-						</div>
-					</div>
-					
-					<div class="flex gap-[-20px] ml-4">
-						{#each opponent.hand as card, i}
-							<div class="w-16 h-24 bg-white rounded-md shadow-lg flex flex-col items-center justify-center border border-slate-200" style={`z-index: ${i}; transform: translateX(-${i * 15}px) rotate(${i * 5 - 5}deg);`}>
-								<span class={`text-2xl ${getSuitColor(card.suit)}`}>{getSuitSymbol(card.suit)}</span>
-								<span class={`text-lg font-bold mt-1 ${getSuitColor(card.suit)}`}>{card.rank}</span>
+            <!-- ─── Opponent Area ─── -->
+            {#if opponent}
+			<div class="player-zone opponent-zone">
+				<div class="player-info">
+					<span class="player-name">{opponent.name} {game?.currentPlayerIndex === game?.players.findIndex(p => p.id === opponent.id) && game.phase !== 'waiting' && game.phase !== 'complete' ? '(Thinking...)' : ''}</span>
+					<span class="chip-count">
+						<ion-icon name="cash-outline"></ion-icon> {opponent.chips}
+						{#if opponent.currentBet > 0}
+							<span class="bet-indicator">Bet: £{opponent.currentBet}</span>
+						{/if}
+					</span>
+                    {#if opponent.score > 0}
+                         <span class="score-badge mini">Score: {opponent.score}</span>
+                    {/if}
+				</div>
+				<div class="hand-area mini-hand-area">
+					{#if opponent.hand && opponent.hand.length > 0}
+						{#each opponent.hand as card, i (i)}
+							<div class="playing-card mini" class:red={isRed(card.suit)} class:card-back={(card as any).hidden} transition:fly|local={{ y: -20, duration: 400 }}>
+								{#if !(card as any).hidden}
+                                    <span class="card-rank">{card.rank}</span>
+                                    <span class="card-suit">{getSuitSymbol(card.suit)}</span>
+                                {:else}
+                                    <div class="pattern"></div>
+                                {/if}
 							</div>
 						{/each}
-					</div>
-                    <div class="mt-1 ml-4 px-2 py-0.5 bg-slate-800/80 rounded-full text-xs font-semibold text-slate-300 shadow-sm border border-slate-700/50">
-                        Score: {opponent.score}
-                    </div>
+					{:else}
+                        <div class="playing-card card-back mini"><div class="pattern"></div></div>
+                        <div class="playing-card card-back mini"><div class="pattern"></div></div>
+					{/if}
 				</div>
-			{/if}
+                {#if opponent.status !== 'betting' && opponent.status !== 'playing'}
+                    <div class="status-indicator">{opponent.status}</div>
+                {/if}
+			</div>
+            {/if}
+
+			<!-- ─── Center Area ─── -->
+			<div class="table-center">
+				<div class="community-zone">
+					<div class="pot-display" style="margin-top: 15px;">
+						<span class="pot-label">POT</span>
+						{#key game.pot}
+						<span class="pot-value" in:scale>£{game.pot}</span>
+						{/key}
+					</div>
+				</div>
+			</div>
 
 			<!-- ─── My Area ─── -->
-			{#if me}
-				<div class="bg-gradient-to-t from-slate-900 via-slate-800 to-transparent p-6 pb-8 relative z-20">
-                    
-                     {#if game.phase === 'complete'}
-                        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-30 rounded-t-3xl border-t border-slate-700/50">
-                            <h2 class="text-4xl font-black text-white mb-2 shadow-black drop-shadow-lg tracking-wide uppercase italic">
-                                {#if game.winnerIds.includes(me.id)}
-                                    <span class="text-emerald-400">You Win!</span>
-                                {:else if game.pushIds.includes(me.id)}
-                                    <span class="text-yellow-400">Push</span>
-                                {:else if game.loserIds.includes(me.id)}
-                                    <span class="text-red-400">Dealer Wins</span>
-                                {:else}
-                                    <span class="text-slate-400">Hand Complete</span>
-                                {/if}
-                            </h2>
-                            <p class="text-xl text-slate-300 font-medium mb-8 bg-slate-800/80 px-4 py-2 rounded-lg border border-slate-700">
-                                {#if me.status === 'blackjack'}
-                                    Blackjack!
-                                {:else if me.status === 'busted'}
-                                    Busted
-                                {:else}
-                                    Score: {me.score}
-                                {/if}
-                            </p>
-                            <button onclick={nextHand} class="px-8 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold rounded-xl shadow-xl hover:shadow-emerald-500/25 transition-all text-xl transform hover:-translate-y-1 active:translate-y-0">
-                                Next Hand
-                            </button>
-                        </div>
+            {#if me}
+			<div class="player-zone my-zone">
+				<div class="hand-area my-hand-area">
+					{#if me.hand && me.hand.length > 0}
+						{#each me.hand as card, i (card.rank + card.suit)}
+							<div class="playing-card my-card" class:red={isRed(card.suit)} 
+								in:fly={{ y: 100, duration: 500, delay: i * 150, easing: cubicOut }}>
+								<span class="card-top">{card.rank}{getSuitSymbol(card.suit)}</span>
+								<div class="card-center">{getSuitSymbol(card.suit)}</div>
+							</div>
+						{/each}
+					{/if}
+				</div>
+				<div class="player-info my-info">
+					<span class="player-name">{me.name}</span>
+					<span class="chip-count">
+						<ion-icon name="cash-outline"></ion-icon> {me.chips}
+						{#if me.currentBet > 0}
+							<span class="bet-indicator">Bet: £{me.currentBet}</span>
+						{/if}
+					</span>
+                    {#if me.score > 0}
+                         <span class="score-badge">Score: {me.score}</span>
                     {/if}
+				</div>
+			</div>
+            {/if}
 
-					<div class="max-w-3xl mx-auto flex flex-col md:flex-row justify-between items-end gap-6 relative z-10">
-						<!-- Player Info -->
-						<div class="flex items-center gap-4 bg-slate-800/90 p-3 rounded-2xl shadow-xl border border-slate-700/50 backdrop-blur-md">
-							<div class="w-14 h-14 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-2xl font-bold shadow-inner border border-slate-500/50">
-								👤
-							</div>
-							<div>
-								<div class="font-extrabold text-xl text-white tracking-wide">{me.name}</div>
-								<div class="text-sm text-emerald-400 font-semibold tracking-wide flex items-center gap-1">
-                                    <span class="text-emerald-500">💰</span> £{me.chips}
-                                </div>
-							</div>
-						</div>
-
-						<!-- My Cards -->
-						<div class="flex-1 flex flex-col items-center">
-                            <div class="mb-2 px-3 py-1 bg-slate-800/80 rounded-full text-sm font-semibold text-slate-300 shadow-sm border border-slate-700/50 shadow-black/50">
-                                Score <span class="text-emerald-400 font-bold ml-1">{me.score > 0 ? me.score : ''}</span>
-                            </div>
-							<div class="flex gap-2 min-h-[120px]">
-								{#if me.hand.length === 0}
-                                    <div class="w-20 h-28 rounded-lg border-2 border-dashed border-slate-500/30"></div>
-                                    <div class="w-20 h-28 rounded-lg border-2 border-dashed border-slate-500/30"></div>
-                                {:else}
-                                    {#each me.hand as card}
-                                        <div class="w-20 h-28 bg-white rounded-lg shadow-2xl flex flex-col items-center justify-center transform hover:-translate-y-3 transition-transform duration-300 relative border-2 border-slate-200">
-                                            <span class={`text-3xl ${getSuitColor(card.suit)}`}>{getSuitSymbol(card.suit)}</span>
-                                            <span class={`text-xl font-bold mt-1 ${getSuitColor(card.suit)}`}>{card.rank}</span>
-                                        </div>
-                                    {/each}
-                                {/if}
-							</div>
-						</div>
-
-						<!-- Actions panel -->
-						<div class="bg-slate-800/90 p-4 rounded-2xl shadow-xl border border-slate-700/50 backdrop-blur-md min-w-[280px]">
-							
-                            {#if game.phase === 'betting' && me.status === 'betting'}
-                                <div class="mb-4">
-                                    <div class="flex justify-between text-sm text-slate-400 mb-2 font-medium">
-                                        <span>Place Bet</span>
-                                        <span class="text-emerald-400 font-bold">£{betAmount}</span>
-                                    </div>
-                                    <input type="range" min="0" max={Math.min(me.chips, 500)} step="10" bind:value={betAmount} class="w-full accent-emerald-500 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
-                                </div>
-                                <button onclick={() => doAction('bet', betAmount)} disabled={me.chips < betAmount} class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-emerald-500/25">
-                                    {betAmount === 0 ? 'Skip Hand' : 'Place Bet'}
-                                </button>
-                            {:else if game.phase === 'betting'}
-                                <div class="text-center py-4 text-slate-400 font-medium animate-pulse">
-                                    Waiting for opponent to bet...
-                                </div>
-                            {:else if game.phase === 'playing' && me.status === 'playing'}
-                                <div class="grid grid-cols-2 gap-3 mb-3">
-                                    <button onclick={() => doAction('hit')} class="py-3 bg-slate-700/80 hover:bg-slate-600 text-white font-bold rounded-xl transition-all border border-slate-600 shadow-md">
-                                        Hit
-                                    </button>
-                                    <button onclick={() => doAction('stand')} class="py-3 bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-md">
-                                        Stand
-                                    </button>
-                                </div>
-                                <button onclick={() => doAction('double')} disabled={me.chips < me.currentBet || me.hand.length > 2} class="w-full py-2 bg-indigo-600/90 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-md text-sm">
-                                    Double Down (£{me.currentBet})
-                                </button>
-                            {:else if me.status === 'busted' || me.status === 'stood' || me.status === 'blackjack'}
-                                <div class="text-center py-4 text-slate-400 flex flex-col items-center">
-                                    <span class="font-bold text-lg mb-1">{me.status.charAt(0).toUpperCase() + me.status.slice(1)}</span>
-                                    {#if game.phase === 'playing'}
-                                        <span class="text-sm animate-pulse">Waiting for opponent...</span>
-                                    {/if}
-                                </div>
+			<!-- ─── Actions Bar ─── -->
+             {#if me}
+                {#if game.phase === 'complete'}
+                    <div class="actions-bar outcome-bar" in:fly={{ y: 20, duration: 300 }}>
+                        <div class="outcome-message">
+                            {#if game.winnerIds.includes(me.id)}
+                                <h3 class="text-win">You Win!</h3>
+                            {:else if game.pushIds.includes(me.id)}
+                                <h3 class="text-push">Push</h3>
+                            {:else if game.loserIds.includes(me.id)}
+                                <h3 class="text-lose">You Lost!</h3>
                             {:else}
-                                 <div class="text-center py-4 text-slate-400 font-medium">
-                                    Waiting...
-                                </div>
+                                <h3 class="text-muted">Hand Complete</h3>
+                            {/if}
+                        </div>
+                        <button class="btn btn-primary" onclick={nextHand}>Next Hand</button>
+                    </div>
+                {:else if game.phase === 'betting' && me.status === 'betting' && isMyTurn}
+                    <div class="actions-bar" in:fly={{ y: 20, duration: 300 }}>
+                        <div class="main-actions" style="display: flex; gap: 12px; align-items: stretch; width: 100%;">
+                            {#if opponent && me.currentBet >= opponent.currentBet}
+                                <button class="btn btn-primary big-check" onclick={() => doAction('check')} style="flex: 1; min-height: 80px; font-weight: bold; font-size: 1.2rem; text-transform: uppercase;">Check</button>
+                            {:else if opponent}
+                                <button class="btn btn-primary big-check" onclick={() => doAction('call')} style="flex: 1; min-height: 80px; font-weight: bold; font-size: 1.2rem; text-transform: uppercase;">
+                                    Call £{opponent.currentBet - me.currentBet}
+                                </button>
                             {/if}
 
-                            <div class="mt-4 pt-3 border-t border-slate-700/50 flex justify-between text-xs text-slate-400 font-medium uppercase tracking-wider">
-                                <span>Pot</span>
-                                <span class="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">£{me.currentBet + (opponent ? opponent.currentBet : 0)}</span>
+                            <div class="bet-section" style="flex: 2; display: flex; flex-direction: column; gap: 8px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 12px;">
+                                <button class="btn btn-primary bet-btn-small" onclick={() => doAction('bet', betAmount)} disabled={me.chips < betAmount || betAmount < minBet}>
+                                    Bet £{betAmount}
+                                </button>
+                                <div class="slider-container">
+                                    <input 
+                                        type="range" 
+                                        min={minBet} 
+                                        max={Math.min(maxBet, 250)} 
+                                        step="5" 
+                                        bind:value={betAmount}
+                                        class="big-slider"
+                                    />
+                                    <div class="slider-labels">
+                                        <span>£{minBet}</span>
+                                        <span>£{Math.min(maxBet, 250)}</span>
+                                    </div>
+                                </div>
                             </div>
-						</div>
-					</div>
-				</div>
-			{/if}
+                        </div>
+                        <div class="secondary-actions" style="width: 100%; display: flex; margin-top: 8px;">
+                             <button class="btn btn-danger ghost sm" style="width: 100%;" onclick={() => doAction('fold')}>Fold</button>
+                        </div>
+                    </div>
+                {:else if game.phase === 'playing' && me.status === 'playing' && isMyTurn}
+                    <div class="actions-bar" in:fly={{ y: 20, duration: 300 }}>
+                        <div class="secondary-actions" style="display: flex; gap: 8px;">
+                            <button class="btn btn-primary" onclick={() => doAction('hit')}>HIT</button>
+                            <button class="btn btn-success" onclick={() => doAction('stand')}>STAND</button>
+                            <button class="btn btn-warning" onclick={() => doAction('double')} disabled={me.chips < me.currentBet || me.hand.length > 2}>DOUBLE DOWN</button>
+                        </div>
+                    </div>
+                {:else}
+                    <div class="waiting-bar" in:fade>
+                        <div class="spinner"></div>
+                        <p class="waiting-text">{me.status === 'busted' ? 'You busted!' : 'Waiting for round to finish...'}</p>
+                    </div>
+                {/if}
+             {/if}
+			
 		</div>
 	{/if}
 </div>
+
+<style>
+/* 
+  Reusing Poker's open layout structure. 
+  Variables like --bg-primary are assumed to be in global app.css
+*/
+.blackjack-page {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;
+    min-height: 100vh;
+}
+
+h1 { font-size: 1.3rem; font-weight: 800; text-align: center; opacity: 0.5; display: flex; align-items: center; justify-content: center; gap: 8px;}
+.practice-badge { font-size: 0.6rem; background: var(--bg-secondary); color: var(--text-muted); padding: 4px 8px; border-radius: 4px; }
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.lobby {
+    text-align: center;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    max-width: 400px;
+    margin: 40px auto;
+}
+
+.game-icon {
+    font-size: 4rem;
+    margin-bottom: 10px;
+    background: rgba(255,255,255,0.05);
+    width: 100px;
+    height: 100px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lobby-controls {
+    margin: 20px 0;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    background: var(--bg-secondary);
+    padding: 10px 20px;
+    border-radius: 20px;
+}
+
+.game-board {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    flex: 1;
+    justify-content: space-between;
+    position: relative;
+    padding: 20px;
+}
+
+.player-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    z-index: 2;
+}
+
+.opponent-zone { margin-bottom: 20px; opacity: 0.9;}
+.my-zone { 
+    display: flex;
+    flex-direction: column-reverse; /* Keeps info below cards */
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 20px; /* Space from the very bottom edge */
+    margin-top: 0; 
+}
+
+.player-info {
+    background: rgba(0,0,0,0.6);
+    padding: 6px 16px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.my-info {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    padding: 8px 20px;
+}
+
+.player-name { font-weight: 700; font-size: 0.8rem; color: white; }
+.chip-count { font-family: 'Geist Mono', monospace; color: #ffd700; font-weight: 700; display: flex; gap: 8px; align-items: center; }
+.bet-indicator { font-size: 0.7rem; color: #aaa; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
+.score-badge { font-size: 0.8rem; color: #fff; background: rgba(99, 102, 241, 0.4); padding: 2px 8px; border-radius: 10px; font-weight: bold;}
+.score-badge.mini { font-size: 0.7rem; background: rgba(255, 255, 255, 0.1); }
+
+.hand-area { 
+    display: flex; 
+    gap: 8px; 
+    justify-content: center; 
+    align-items: flex-end; /* cards align bottom */
+}
+.my-hand-area { height: 120px; gap: 12px; }
+.mini-hand-area { height: 70px; gap: 4px; }
+
+.playing-card {
+    width: 60px;
+    height: 85px;
+    background: rgba(255,255,255,0.05); /* Very slight tint for glass */
+    border: 2px solid rgba(255,255,255,0.4);
+    backdrop-filter: blur(4px);
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    font-family: 'Geist Mono', monospace;
+    font-weight: 700;
+}
+
+.playing-card.my-card {
+    width: 80px;
+    height: 115px;
+    border: 2px solid rgba(255,255,255,0.6);
+}
+
+.playing-card.mini {
+    width: 45px;
+    height: 65px;
+    font-size: 0.8rem;
+}
+
+.playing-card .card-top, .playing-card .card-center, .playing-card .card-rank, .playing-card .card-suit {
+    color: white; /* Default white text */
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.8)); /* Readability */
+}
+.playing-card.red .card-top, .playing-card.red .card-center, .playing-card.red .card-rank, .playing-card.red .card-suit { 
+    color: #ff5555; /* Bright Red */
+}
+
+.my-card .card-top { position: absolute; top: 6px; left: 6px; font-size: 1rem; line-height: 1; }
+.my-card .card-center { font-size: 2.5rem; }
+
+.card-back {
+    background: #1e293b;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+}
+.card-back .pattern {
+    position: absolute;
+    inset: 4px;
+    border-radius: 4px;
+    background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.05) 5px, rgba(255,255,255,0.05) 10px);
+}
+
+.playing-card.empty { background: rgba(0,0,0,0.2); box-shadow: none; border: 2px dashed rgba(255,255,255,0.1); }
+
+.table-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin: auto 0; /* This keeps the table perfectly centered between players */
+    z-index: 1;
+}
+
+.dealer-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.dealer-label {
+    font-weight: 800;
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+.dealer-label .score-value { color: #fff; margin-left: 6px; }
+
+/* Actions Bar */
+.actions-bar, .waiting-bar {
+    position: sticky;
+    bottom: 16px;
+    margin: 0 auto;
+    background: linear-gradient(to top, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.8));
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    width: 95%;
+    max-width: 600px;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.6);
+}
+
+.main-actions, .secondary-actions {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    max-width: 600px;
+    align-items: center;
+    justify-content: center;
+}
+
+.bet-section {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 20px;
+    background: rgba(0,0,0,0.3);
+    padding: 10px 20px;
+    border-radius: 12px;
+}
+.slider-container { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.big-slider { width: 100%; accent-color: var(--accent); }
+.slider-labels { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); font-family: 'Geist Mono', monospace; }
+.bet-btn-small { min-width: 120px; font-weight: 800; }
+
+.outcome-bar {
+    flex-direction: column;
+    gap: 15px;
+}
+
+.outcome-message h3 { font-size: 1.5rem; font-weight: 800; margin: 0; }
+.text-win { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+.text-push { color: #f59e0b; }
+.text-lose { color: #ef4444; }
+
+.toast.error {
+    position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
+    background: var(--danger); color: white; padding: 10px 20px; border-radius: 20px;
+    z-index: 1000; display: flex; align-items: center; gap: 10px; font-weight: bold; box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+}
+.close-error { background: none; border: none; color: white; cursor: pointer; opacity: 0.8; font-size: 1rem; }
+	.pot-display {
+		background: rgba(0,0,0,0.6);
+		padding: 8px 24px;
+		border-radius: 30px;
+		border: 1px solid rgba(255,215,0,0.5);
+		text-align: center;
+	}
+	.pot-label { display: block; font-size: 0.6rem; color: #ccc; letter-spacing: 2px; }
+	.pot-value { font-size: 1.4rem; color: #ffd700; font-weight: 800; text-shadow: 0 0 10px rgba(255,215,0,0.3); }
+
+.spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.waiting-text { color: var(--text-muted); font-weight: 600; }
+.status-indicator { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: var(--accent); background: rgba(99, 102, 241, 0.2); padding: 4px 10px; border-radius: 8px;}
+</style>
