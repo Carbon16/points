@@ -5,8 +5,7 @@ export interface User {
 	publicKey?: string;
 }
 
-// ─── Blockchain ───────────────────────────────────────────────────────
-export type BlockType = 'genesis' | 'poker_win' | 'dice_win' | 'manual_point' | 'spend';
+export type BlockType = 'genesis' | 'poker_win' | 'dice_win' | 'blackjack_win' | 'knucklebones_win' | 'manual_point' | 'spend';
 
 export interface BlockData {
 	type: BlockType;

@@ -38,10 +38,12 @@ export function addBlock(data: BlockData): Block {
 export function getPointsForUser(userId: string): number {
 	const chain = getChain();
 	let points = 0;
+	const kbThreshold = new Date('2026-03-04T00:00:00Z').getTime();
 	for (const block of chain) {
 		const val = block.data.amount || 1;
 		if (block.data.winner === userId) {
-			if (block.data.type === 'poker_win' || block.data.type === 'manual_point') {
+			if (['poker_win', 'manual_point', 'blackjack_win', 'dice_win'].includes(block.data.type) ||
+			   (block.data.type === 'knucklebones_win' && block.data.timestamp >= kbThreshold)) {
 				points += val;
 			} else if (block.data.type === 'spend') {
 				points -= val;
@@ -54,10 +56,12 @@ export function getPointsForUser(userId: string): number {
 export function getScoreboard(): { userId: string; points: number }[] {
 	const chain = getChain();
 	const scores: Record<string, number> = {};
+	const kbThreshold = new Date('2026-03-04T00:00:00Z').getTime();
 	for (const block of chain) {
 		const val = block.data.amount || 1;
 		if (block.data.winner) {
-			if (block.data.type === 'poker_win' || block.data.type === 'manual_point') {
+			if (['poker_win', 'manual_point', 'blackjack_win', 'dice_win'].includes(block.data.type) ||
+			   (block.data.type === 'knucklebones_win' && block.data.timestamp >= kbThreshold)) {
 				scores[block.data.winner] = (scores[block.data.winner] || 0) + val;
 			} else if (block.data.type === 'spend') {
 				scores[block.data.winner] = (scores[block.data.winner] || 0) - val;

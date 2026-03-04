@@ -109,10 +109,12 @@ export function performAction(game: KnucklebonesGameState, playerId: string, act
         const placedValue = game.currentRoll;
         player.board[colIndex][placedRow] = placedValue;
 
-        // Destroy opponent's dice in parallel column
+        // Destroy opponent's dice in parallel column (max 2)
+        let removedCount = 0;
         for (let row = 0; row < 3; row++) {
-             if (opponent.board[colIndex][row] === placedValue) {
+             if (opponent.board[colIndex][row] === placedValue && removedCount < 2) {
                   opponent.board[colIndex][row] = null;
+                  removedCount++;
              }
         }
         
