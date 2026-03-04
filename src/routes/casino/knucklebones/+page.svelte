@@ -5,22 +5,25 @@
     import type { KnucklebonesGameState } from '$lib/types';
 
 	let game = $state<KnucklebonesGameState | null>(null);
-	let pollingInterval: ReturnType<typeof setInterval>;
 	let error = $state<string | null>(null);
+
+	import { io, Socket } from 'socket.io-client';
+	let socket: Socket;
 
 	onMount(() => {
 		loadGame();
-		startPolling();
+		
+		socket = io();
+		socket.on('game_update', (data) => {
+			if (data.game === 'knucklebones' || data.game === 'all') {
+				loadGame();
+			}
+		});
 	});
 
 	onDestroy(() => {
-		if (pollingInterval) clearInterval(pollingInterval);
+		if (socket) socket.disconnect();
 	});
-
-	function startPolling() {
-		if (pollingInterval) clearInterval(pollingInterval);
-		pollingInterval = setInterval(loadGame, 1000);
-	}
 
 	async function loadGame() {
 		if (!$auth.token) {

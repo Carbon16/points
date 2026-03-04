@@ -7,7 +7,6 @@
 	import { cubicOut } from 'svelte/easing';
 
 	let game = $state<BlackjackGameState | null>(null);
-	let pollingInterval: ReturnType<typeof setInterval>;
 	let error = $state<string | null>(null);
     let loading = $state(true);
 
@@ -15,19 +14,23 @@
     let betAmount = $state(10);
 	let stakesSelection = $state<'full' | 'half' | 'none'>('full');
 
+	import { io, Socket } from 'socket.io-client';
+	let socket: Socket;
+
 	onMount(() => {
 		loadGame();
-		startPolling();
+
+		socket = io();
+		socket.on('game_update', (data) => {
+			if (data.game === 'blackjack' || data.game === 'all') {
+				loadGame();
+			}
+		});
 	});
 
 	onDestroy(() => {
-		if (pollingInterval) clearInterval(pollingInterval);
+		if (socket) socket.disconnect();
 	});
-
-	function startPolling() {
-		if (pollingInterval) clearInterval(pollingInterval);
-		pollingInterval = setInterval(loadGame, 1000);
-	}
 
 	async function loadGame() {
 		if (!$auth.token) {

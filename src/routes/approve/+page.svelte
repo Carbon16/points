@@ -31,6 +31,9 @@
 	let users = $state<{id: string, name: string}[]>([]);
 	let myBalance = $state(0);
 
+	import { io, Socket } from 'socket.io-client';
+	let socket: Socket;
+
 	onMount(async () => {
 		if (!$auth.token) { goto('/login'); return; }
 		const [uRes, sRes] = await Promise.all([
@@ -44,6 +47,18 @@
 			myBalance = myScore ? myScore.points : 0;
 		}
 		await loadPending();
+
+		socket = io();
+		socket.on('game_update', (data) => {
+			if (data.game === 'points' || data.game === 'all') {
+				loadPending();
+			}
+		});
+	});
+
+	import { onDestroy } from 'svelte';
+	onDestroy(() => {
+		if (socket) socket.disconnect();
 	});
 
 	async function loadPending() {

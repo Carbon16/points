@@ -6,7 +6,6 @@
     import type { DiceGameState, DiceFace, Stakes } from '$lib/dice/game';
 
     let game = $state<DiceGameState | null>(null);
-    let pollingInterval: any;
     
     // Form Inputs
     let bidQuantity = $state(1);
@@ -15,13 +14,22 @@
     let selectedStakes = $state<Stakes>('full');
     let waitingGames = $state<any[]>([]);
 
+    import { io, Socket } from 'socket.io-client';
+    let socket: Socket;
+
     onMount(() => {
         loadGame();
-        startPolling();
+        
+        socket = io();
+        socket.on('game_update', (data) => {
+            if (data.game === 'dice' || data.game === 'all') {
+                loadGame();
+            }
+        });
     });
 
     onDestroy(() => {
-        if (pollingInterval) clearInterval(pollingInterval);
+        if (socket) socket.disconnect();
     });
 
     async function loadGame() {
@@ -51,11 +59,6 @@
         } catch (e) {
             console.error('Polling error', e);
         }
-    }
-
-    function startPolling() {
-        if (pollingInterval) clearInterval(pollingInterval);
-        pollingInterval = setInterval(loadGame, 500);
     }
 
     async function createGame() {
