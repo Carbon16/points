@@ -54,6 +54,10 @@ export async function POST({ request, cookies }) {
         const dbName = getUserName(userId);
         const game = createGame(userId, dbName || userName, 'waiting', 'Waiting User', stakes || 'full');
         saveGame(game);
+        
+        // @ts-ignore
+        globalThis.io?.emit('game_update', { game: 'knucklebones' });
+
         return json({ success: true, game });
     }
 
@@ -65,6 +69,10 @@ export async function POST({ request, cookies }) {
             const dbName = getUserName(userId);
             joinGame(game, userId, dbName || userName);
             saveGame(game);
+
+            // @ts-ignore
+            globalThis.io?.emit('game_update', { game: 'knucklebones' });
+            
             return json({ success: true, game });
         } catch (e: any) {
              return json({ error: e.message }, { status: 400 });
@@ -73,6 +81,10 @@ export async function POST({ request, cookies }) {
     
     if (action === 'leave') {
         clearGame();
+        
+        // @ts-ignore
+        globalThis.io?.emit('game_update', { game: 'knucklebones' });
+        
         return json({ success: true });
     }
     
@@ -100,6 +112,10 @@ export async function POST({ request, cookies }) {
         }
 
         saveGame(game);
+
+        // @ts-ignore
+        globalThis.io?.emit('game_update', { game: 'knucklebones' });
+
         return json({ success: true, game });
     } catch (e: any) {
         return json({ error: e.message }, { status: 400 });

@@ -62,6 +62,10 @@ export async function POST({ request, cookies }) {
         const dbName = getUserName(userId);
         const game = createGame(userId, dbName || userName, 'waiting', 'Waiting User', stakes || 'full');
         saveGame(game);
+
+        // @ts-ignore
+        globalThis.io?.emit('game_update', { game: 'blackjack' });
+
         return json({ success: true, game: getPlayerView(game, userId) });
     }
 
@@ -73,6 +77,10 @@ export async function POST({ request, cookies }) {
             const dbName = getUserName(userId);
             joinGame(game, userId, dbName || userName);
             saveGame(game);
+
+            // @ts-ignore
+            globalThis.io?.emit('game_update', { game: 'blackjack' });
+
             return json({ success: true, game: getPlayerView(game, userId) });
         } catch (e: any) {
              return json({ error: e.message }, { status: 400 });
@@ -81,6 +89,10 @@ export async function POST({ request, cookies }) {
     
     if (action === 'leave') {
         clearGame();
+
+        // @ts-ignore
+        globalThis.io?.emit('game_update', { game: 'blackjack' });
+
         return json({ success: true });
     }
     
@@ -94,11 +106,19 @@ export async function POST({ request, cookies }) {
             if (over) {
                 // Handle end of game chips transfer if needed? Or just clear.
                 clearGame();
+
+                // @ts-ignore
+                globalThis.io?.emit('game_update', { game: 'blackjack' });
+
                 return json({ success: true, game: { gameOver: true }});
             }
 
             game = startNextHand(game);
             saveGame(game);
+
+            // @ts-ignore
+            globalThis.io?.emit('game_update', { game: 'blackjack' });
+
             return json({ success: true, game: getPlayerView(game, userId) });
         }
 
@@ -121,6 +141,10 @@ export async function POST({ request, cookies }) {
         }
 
         saveGame(game);
+
+        // @ts-ignore
+        globalThis.io?.emit('game_update', { game: 'blackjack' });
+
         return json({ success: true, game: getPlayerView(game, userId) });
 
     } catch (e: any) {

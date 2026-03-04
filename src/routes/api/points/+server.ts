@@ -34,6 +34,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			approvedBy: [winnerId, loserId],
 			timestamp: Date.now()
 		});
+		// @ts-ignore
+		globalThis.io?.emit('game_update', { game: 'points' });
 		return json({ success: true, data: block });
 	}
 
@@ -54,6 +56,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			body: `${user.name} wants to award ${amount} point(s) to ${winnerId}: ${description || 'Manual point'}`,
 			url: '/approve'
 		});
+
+		// @ts-ignore
+		globalThis.io?.emit('game_update', { game: 'points' });
 
 		return json({ success: true, data: { id, status: 'pending' } });
 	}
@@ -80,6 +85,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			body: `${user.name} wants to spend ${amount} point(s): ${description || 'Spend'}`,
 			url: '/approve'
 		});
+
+		// @ts-ignore
+		globalThis.io?.emit('game_update', { game: 'points' });
 
 		return json({ success: true, data: { id, status: 'pending' } });
 	}

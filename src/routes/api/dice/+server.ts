@@ -30,6 +30,10 @@ export async function POST({ request, cookies }) {
         const dbName = getUserName(userId);
         const game = createGame(userId, dbName || userName, 'waiting', 'Waiting User', stakes || 'full');
         games.set(game.id, game);
+
+        // @ts-ignore
+        globalThis.io?.emit('game_update', { game: 'dice' });
+
         return json({ success: true, game });
     }
 
@@ -42,6 +46,10 @@ export async function POST({ request, cookies }) {
 
             const dbName = getUserName(userId);
             const game = joinGame(existingGame, userId, dbName || userName);
+
+            // @ts-ignore
+            globalThis.io?.emit('game_update', { game: 'dice' });
+
             return json({ success: true, game });
         } catch (e: any) {
              return json({ error: e.message }, { status: 400 });
@@ -58,6 +66,10 @@ export async function POST({ request, cookies }) {
                  games.delete(gameId);
              }
         }
+
+        // @ts-ignore
+        globalThis.io?.emit('game_update', { game: 'dice' });
+
         return json({ success: true });
     }
     
@@ -100,6 +112,9 @@ export async function POST({ request, cookies }) {
         }
         
         games.set(gameId, updatedGame);
+
+        // @ts-ignore
+        globalThis.io?.emit('game_update', { game: 'dice' });
 
         return json({ success: true, game: updatedGame });
     } catch (e: any) {

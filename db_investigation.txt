@@ -1,4 +1,0 @@
---- INVESTIGATION: FLUSH HAND ---
-
---- GAME ACTIONS (2d707a2e-3f92-4f5a-9452-4d0c8d2d21d3) ---
-[]

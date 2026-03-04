@@ -138,6 +138,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			const dbName = getUserName(user.userId);
 			joinGame(game, user.userId, dbName || user.name);
 			saveGame(game);
+			// @ts-ignore
+			globalThis.io?.emit('game_update', { game: 'poker' });
 			return json({ success: true, data: getPlayerView(game, user.userId) });
 		} catch (err) {
 			return json({ success: false, error: err instanceof Error ? err.message : 'Failed to join' }, { status: 400 });
@@ -164,6 +166,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			body: `${user.name} wants to play poker!`,
 			url: '/casino/poker'
 		});
+
+		// @ts-ignore
+		globalThis.io?.emit('game_update', { game: 'poker' });
 
 		return json({ success: true, data: getPlayerView(game, user.userId) });
 	}
@@ -206,6 +211,10 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		game = startNextHand(game);
 		saveGame(game);
+
+		// @ts-ignore
+		globalThis.io?.emit('game_update', { game: 'poker' });
+		
 		return json({ success: true, data: getPlayerView(game, user.userId) });
 	}
 
@@ -240,6 +249,9 @@ export const POST: RequestHandler = async ({ request }) => {
 				responseData.winner = winner;
 				responseData.loser = loser;
 			}
+
+			// @ts-ignore
+			globalThis.io?.emit('game_update', { game: 'poker' });
 
 			return json({
 				success: true,
@@ -285,6 +297,10 @@ export const POST: RequestHandler = async ({ request }) => {
 	// End/abandon game
 	if (action === 'end') {
 		clearGame();
+
+		// @ts-ignore
+		globalThis.io?.emit('game_update', { game: 'poker' });
+		
 		return json({ success: true });
 	}
 

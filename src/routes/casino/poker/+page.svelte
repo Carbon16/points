@@ -19,12 +19,20 @@
 	let pendingAction = $state<{ type: string; data?: any } | null>(null);
 	let nextHandTimer = $state(0);
 	let hasTriggeredShowdown = false;
-	let pollInterval: ReturnType<typeof setInterval>;
+
+	import { io, Socket } from 'socket.io-client';
+	let socket: Socket;
 
 	onMount(async () => {
 		if (!$auth.token) { goto('/login'); return; }
 		await loadGame();
-		pollInterval = setInterval(loadGame, 1000);
+		
+		socket = io();
+		socket.on('game_update', (data) => {
+			if (data.game === 'poker' || data.game === 'all') {
+				loadGame();
+			}
+		});
 		
 		// Timer tick
 		setInterval(() => {
@@ -33,7 +41,7 @@
 	});
 
 	onDestroy(() => {
-		if (pollInterval) clearInterval(pollInterval);
+		if (socket) socket.disconnect();
 	});
 
 	let lastSavedHandId = '';
