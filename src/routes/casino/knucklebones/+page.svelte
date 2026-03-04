@@ -165,7 +165,7 @@
 				<p class="game-subtitle">Strategic dice placement. Match dice to multiply, place to destroy.</p>
 				
                 <div class="stakes-selector" style="margin-bottom: 24px; text-align: left;">
-                    <label style="display: block; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: bold; margin-bottom: 8px;">Stakes</label>
+                    <div id="stakes-label" style="display: block; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: bold; margin-bottom: 8px;">Stakes</div>
                     <div style="display: flex; gap: 8px;">
                         <button class="btn {stakesSelection === 'full' ? 'btn-primary' : 'btn-ghost'}" style="flex: 1;" onclick={() => stakesSelection = 'full'}>Full Pt</button>
                         <button class="btn {stakesSelection === 'half' ? 'btn-primary' : 'btn-ghost'}" style="flex: 1;" onclick={() => stakesSelection = 'half'}>Half Pt</button>
