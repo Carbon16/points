@@ -29,4 +29,3 @@ test_*.ts
 test_*.js
 debug*.ts
 debug*.txt
-db_*.txt
